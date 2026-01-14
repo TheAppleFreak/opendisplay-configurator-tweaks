@@ -1,0 +1,2147 @@
+
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="shortcut icon" href="/firmware/install/favicon.ico"> 
+  <link rel="stylesheet" href="/common.css">
+  <title>OpenDisplay Packet Config Builder</title>
+<style>
+/* Page-specific styles */
+label{font-weight:600;font-size:1.1rem;color:var(--foreground);margin-bottom:16px;display:block}
+textarea,input,select,button{
+  font-family:'JetBrains Mono','Fira Code','Consolas',monospace
+}
+textarea{
+  width:100%;height:220px;background:var(--card-background);border:1px solid var(--border-color);border-radius:8px;
+  padding:12px;color:var(--foreground);font-size:14px;line-height:1.5;resize:vertical
+}
+textarea:focus{
+  outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,191,255,.1)
+}
+button{
+  background:var(--accent);
+  border:none;border-radius:8px;padding:10px 16px;margin:4px 6px 4px 0;
+  color:var(--accent-button);font-weight:500;cursor:pointer;transition:.2s;font-size:14px
+}
+button:hover{background:var(--accent-hover);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,191,255,.3)}
+button:active{transform:none}
+.status-display,.packet-length-indicator,.bytes-counter{
+  background:var(--card-background);border:1px solid var(--border-color);border-radius:6px;
+  font-family:'JetBrains Mono','Fira Code','Consolas',monospace
+}
+.bytes{
+  color:var(--foreground);padding:16px;white-space:pre-wrap;font-size:13px;line-height:1.4;
+  max-height:300px;overflow-y:auto;background:var(--card-background);border:1px solid var(--border-color);border-radius:8px
+}
+.field-row{display:flex;gap:12px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.small{font-size:.85rem;color:#8b949e;margin-top:8px}
+.chip{
+  border-radius:20px;background:var(--accent);
+  color:var(--accent-button);padding:4px 12px;margin-right:8px;font-size:12px;font-weight:500
+}
+.collapse-toggle:hover{background:var(--accent)!important;color:var(--accent-button)!important;border-radius:4px}
+.collapse-toggle:focus{outline:none!important}
+.packet-header{cursor:pointer}
+/* Visual reordering of specific fields */
+.fields-container{display:none;flex-direction:column}
+.fields-container.expanded{display:flex}
+.fields-container.collapsed{display:none}
+.field-row[data-field-name="panel_ic_type"]{order:1}
+.field-row[data-field-name="pixel_width"]{order:2}
+.field-row[data-field-name="pixel_height"]{order:3}
+.field-row[data-field-name="rotation"]{order:4}
+.field-row[data-field-name="color_scheme"]{order:5}
+.field-row[data-field-name="active_width_mm"]{order:6}
+.field-row[data-field-name="active_height_mm"]{order:7}
+.field-row[data-field-name="legacy_tagtype"]{order:8}
+.field-row[data-field-name="reset_pin"]{order:9}
+.field-row[data-field-name="busy_pin"]{order:10}
+.field-row[data-field-name="dc_pin"]{order:11}
+.field-row[data-field-name="cs_pin"]{order:12}
+.field-row[data-field-name="data_pin"]{order:13}
+.field-row[data-field-name="partial_update_support"]{order:14}
+.field-row[data-field-name="transmission_modes"]{order:15}
+/* Simple mode: hide non-essential fields */
+.simple-mode .field-row[data-field-name="active_width_mm"],
+.simple-mode .field-row[data-field-name="active_height_mm"],
+.simple-mode .field-row[data-field-name="legacy_tagtype"],
+.simple-mode .field-row[data-field-name="reset_pin"],
+.simple-mode .field-row[data-field-name="busy_pin"],
+.simple-mode .field-row[data-field-name="dc_pin"],
+.simple-mode .field-row[data-field-name="cs_pin"],
+.simple-mode .field-row[data-field-name="data_pin"],
+.simple-mode .field-row[data-field-name="partial_update_support"],
+.simple-mode .field-row[data-field-name="transmission_modes"],
+.simple-mode .field-row[data-field-name="clk_pin"],
+.simple-mode .field-row[data-field-name="full_update_mC"]
+{display:none}
+/* Full mode: show all fields */
+.full-mode .field-row{display:flex!important}
+.field-row[data-field-name="transmission_modes"]{order:15}
+.field-row[data-field-name="clk_pin"]{order:16}
+.field-row[data-field-name="full_update_mC"]{order:17}
+.danger{color:#f85149}
+.bit-flags{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.bit-flag{
+  display:flex;flex-direction:column;align-items:center;font-size:11px;flex:1;min-width:48px
+}
+.bit-flag input[type=checkbox]{
+  transform:scale(1.4);accent-color:var(--accent);background:var(--card-background)!important;
+  border:1px solid var(--border-color)!important;width:20px;height:20px;
+  appearance:none;cursor:pointer
+}
+.bit-flag input[type=checkbox]:checked{
+  background:var(--accent)!important;border-color:var(--accent)!important;position:relative
+}
+.bit-flag input[type=checkbox]:checked::after{
+  content:"✓";position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);color:var(--accent-button);font-size:10px;font-weight:700
+}
+.bit-flag input[type=checkbox]:focus{
+  outline:none;border-color:var(--accent)!important;box-shadow:0 0 0 2px rgba(0,191,255,.2)
+}
+.bit-flag input[type=checkbox]:hover{border-color:#555!important}
+.bit-label{font-size:10px;text-align:center;color:var(--muted-foreground);margin-top:4px}
+input[type=text],input[type=number],select,
+.field-row input,.packet-card input,input[style*="flex"]{
+  background:var(--card-background)!important;border:1px solid var(--border-color)!important;border-radius:6px!important;
+  padding:8px 12px!important;color:var(--foreground)!important;font-size:14px!important;
+  font-family:'JetBrains Mono','Fira Code','Consolas',monospace!important;
+  min-height:40px!important;transition:.2s;appearance:none
+}
+input:focus,select:focus{
+  outline:none!important;border-color:var(--accent)!important;
+  box-shadow:0 0 0 3px rgba(0,191,255,.1)!important;background:var(--card-background)!important
+}
+input:hover,select:hover{border-color:var(--accent)!important;background:var(--card-background)!important}
+input::placeholder{color:#8b949e!important}
+select{
+  background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'/%3e%3c/svg%3e")!important;
+  background-repeat:no-repeat!important;background-position:right 8px center!important;
+  background-size:16px!important;padding-right:32px!important
+}
+select option{background:#ffffff!important;color:#1a1a1a!important;padding:8px 12px!important}
+input[type=file]{background:#ffffff!important;border:1px solid #e5e7eb!important;
+  border-radius:6px!important;padding:8px 12px!important;color:#1a1a1a!important;font-size:14px!important
+}
+#versionInfo{color:#00bfff;font-weight:500}
+#crcNote,#parseResult{color:#8b949e;font-style:italic}
+.ble-controls{display:flex;flex-direction:column;gap:16px}
+.ble-input-group,.ble-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.ble-input-group label{font-size:.9rem;margin:0;min-width:120px}
+.ble-input-group input[type=text]{flex:1;min-width:200px}
+.remember-group{display:flex;align-items:center;gap:6px}
+.remember-group label{font-size:.85rem;margin:0}
+.ble-actions button{flex:1;min-width:120px}
+.status-display{padding:12px;min-height:100px}
+.status-text{font-weight:600;color:#f85149;margin-bottom:8px}
+.status-text.connected{color:#3fb950}
+.log-display{
+  font-family:'JetBrains Mono','Fira Code','Consolas',monospace;
+  font-size:12px;color:#8b949e;max-height:200px;overflow-y:auto;white-space:pre-wrap
+}
+.log-entry{margin-bottom:2px}
+.log-entry.error{color:#f85149}
+.log-entry.success{color:#3fb950}
+.log-entry.info{color:#58a6ff}
+.packet-length-indicator,.bytes-counter{
+  padding:8px 12px;margin:8px 0;font-size:12px;color:#8b949e
+}
+.packet-length-info,.bytes-stats{
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:4px
+}
+.packet-size,.bytes-count,.packet-size-inline{color:#00bfff;font-weight:600}
+.packet-size-inline{font-size:1rem;margin-left:8px}
+.usage-bar-container{
+  width:100%;height:8px;background:#f3f4f6;border-radius:4px;
+  overflow:hidden;margin:4px 0
+}
+.usage-bar{
+  height:100%;transition:width .3s,background-color .3s;border-radius:4px
+}
+.usage-bar.good{background:#3fb950}
+.usage-bar.warning{background:#d29922}
+.usage-bar.danger{background:#f85149}
+.usage-bar.over-limit{background:#da3633;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+.usage-text{font-size:11px;color:#8b949e;text-align:right}
+.usage-warning{color:#f85149}
+.usage-good{color:#3fb950}
+.usage-warning-text{color:#d29922;font-weight:600}
+.usage-danger-text{color:#f85149;font-weight:600}
+.usage-over-limit{color:#da3633;font-weight:700;animation:pulse 1s infinite}
+.warning-message{
+  background:#da3633;color:#fff;padding:8px 12px;border-radius:6px;
+  margin-top:8px;font-weight:600;text-align:center;animation:pulse 1s infinite
+}
+.packet-card{
+  background:var(--card-background);border:1px solid var(--border-color);border-radius:8px;
+  padding:16px;margin:8px 0;box-shadow:0 1px 2px rgba(0,0,0,.05);transition:.2s
+}
+.packet-card:hover{border-color:var(--accent);box-shadow:0 4px 6px rgba(0,0,0,.1), 0 2px 4px rgba(0,0,0,.06)}
+.packet-header{
+  display:flex;justify-content:space-between;align-items:center;
+  padding-bottom:12px;border-bottom:1px solid var(--border-color);margin-bottom:16px
+}
+.packet-title{display:flex;align-items:center;gap:8px}
+.packet-id{
+  background:var(--accent);
+  color:var(--accent-button);padding:2px 8px;border-radius:12px;font-size:.75rem;font-weight:600
+}
+.packet-actions{display:flex;gap:8px;align-items:center}
+.auto-install-panel{
+  background:var(--card-background);border:2px solid var(--accent);border-radius:12px;padding:24px;
+  box-shadow:0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);margin-top:20px;display:none
+}
+.auto-install-panel.show{display:block}
+.auto-install-panel h3{
+  color:var(--foreground);font-size:1.3rem;font-weight:600;margin-top:0;margin-bottom:12px
+}
+.auto-install-panel p{
+  color:var(--muted-foreground);margin-bottom:16px;line-height:1.6
+}
+.auto-install-actions{
+  display:flex;gap:12px;flex-wrap:wrap
+}
+.auto-install-actions button{
+  width:100%;margin:0
+}
+#openBleTesterBtn{
+  display:none
+}
+a {
+  color: #6b7280;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+a:hover {
+  color: #00bfff;
+  text-decoration: underline;
+}
+</style>
+  <script src="/js/js-yaml.min.js"></script>
+</head>
+<body>
+  <div class="col">
+    <div class="breadcrumb">
+      <a href="/index.html">Home</a><span class="breadcrumb-separator">/</span>
+      <a href="/firmware/index.html">Firmware</a><span class="breadcrumb-separator">/</span>
+      <span>Config Builder</span>
+    </div>
+  </div>
+  <h1>OpenDisplay Config Builder</h1>
+  <div class="col panel">
+    <label>BLE Connection</label>
+    <div class="ble-controls">
+      <div class="ble-input-group">
+        <label for="namePrefix">OD Device Filter:</label>
+        <input type="text" id="namePrefix" value="OD" placeholder="OD (comma separated)" />
+      </div>
+      <div class="ble-actions">
+        <button id="connectbutton" type="button" onclick="preConnect();">Connect</button>
+        <button type="button" onclick="readConfig();">Read Config</button>
+        <button type="button" onclick="writeConfig();">Write Config</button>
+        <button type="button" onclick="reboot();">Reboot</button>
+      </div>
+      <div class="ble-actions">
+        <button type="button" id="importJsonBtn">Import JSON</button>
+        <button type="button" id="exportJsonBtn">Export JSON</button>
+        <button type="button" id="shareConfigBtn">Share Config (URL)</button>
+      </div>
+      <div class="status-display">
+        <div id="statusText" class="status-text">Not Connected</div>
+        <div id="logDisplay" class="log-display"></div>
+      </div>
+    </div>
+    <div id="autoInstallPanel" class="auto-install-panel">
+      <h3>Config Loaded Successfully</h3>
+      <p>Your configuration has been loaded. You can now automatically install it to your device.</p>
+      <div class="auto-install-actions">
+        <button type="button" id="autoInstallBtn" onclick="startAutoInstall();">Auto Install to Device</button>
+        <button type="button" id="openBleTesterBtn" onclick="openBleTester();">Open BLE Tester</button>
+      </div>
+    </div>
+  </div>
+  <div class="col panel">
+    <label>Premade Configurations</label>
+    <div class="ble-controls">
+      <div class="ble-input-group">
+        <label for="presetSelect">Select Configuration:</label>
+        <select id="presetSelect" style="flex: 1; min-width: 200px;">
+          <option value="">-- Select a preset --</option>
+        </select>
+      </div>
+      </div>
+    </div>
+    <div style="margin-top: 6px; margin-bottom: 6px; text-align: right;">
+      <button id="modeToggleBtn" onclick="toggleMode()" style="margin-right: 8px;">Simple</button>
+      <button id="expandCollapseAllBtn" onclick="toggleAllPackets()">Expand All</button>
+    </div>
+  </div>
+  <div class="col panel">
+    <div id="builderUI">(Load YAML to start)</div>
+  </div>
+    <div class="col panel">
+      <label>Finished package bytes</label>
+     <div class="ble-actions">
+        <button type="button" id="buildBtn">Build Packet</button>
+      </div>
+      <div id="bytesView" class="bytes">No package built yet.</div>
+      <div class="small" id="crcNote"></div>
+    </div>
+  <div class="col panel">
+    <label>YAML Configuration <span id="versionInfo" class="small"></span></label>
+    <textarea id="yamlInput" placeholder="Loading config.yaml..."></textarea>
+    <div class="ble-actions">
+      <button type="button" id="loadYamlBtn">Reload from config.yaml</button>
+      <button type="button" id="resetBtn">Reset UI</button>
+      <button type="button" id="downloadYamlBtn">Download YAML</button>
+    </div>
+  </div>
+<script src="/js/ble-common.js"></script>
+<script>
+let bleLib = null;
+function addLog(message, type = 'info') {
+  const logDisplay = document.getElementById('logDisplay');
+  const logEntry = document.createElement('div');
+  logEntry.className = `log-entry ${type}`;
+  logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+  logDisplay.appendChild(logEntry);
+  logDisplay.scrollTop = logDisplay.scrollHeight;
+  while (logDisplay.children.length > 50) {
+    logDisplay.removeChild(logDisplay.firstChild);
+  }
+}
+function setStatus(message, isConnected = false) {
+  const statusText = document.getElementById('statusText');
+  statusText.textContent = message;
+  statusText.className = isConnected ? 'status-text connected' : 'status-text';
+}
+function preConnect() {
+  if (bleLib && bleLib.isConnected) {
+    addLog("Disconnecting...");
+    setStatus("Disconnecting...");
+    document.getElementById("connectbutton").innerHTML = 'Connect';
+    bleLib.disconnect();
+  } else {
+    const namePrefix = document.getElementById('namePrefix').value.trim();
+    if (!namePrefix) {
+      addLog("Error: Device filter needed.", 'error');
+      setStatus("Error: No device filter");
+      return;
+    }
+    bleLib = new OpenDisplayBLE({
+      deviceNamePrefix: namePrefix,
+      maxReconnectAttempts: 3,
+      reconnectDelay: 2000,
+      onConnect: () => {
+        addLog("BLE Connection established successfully!", 'success');
+        setStatus("Connected", true);
+        document.getElementById("connectbutton").innerHTML = 'Disconnect';
+      },
+      onDisconnect: () => {
+        addLog('Device disconnected.');
+        setStatus("Disconnected");
+        document.getElementById("connectbutton").innerHTML = 'Connect';
+      },
+      onError: (error) => {
+        addLog(`Error: ${error.name} - ${error.message}`, 'error');
+        setStatus(`Error: ${error.message}`);
+        document.getElementById("connectbutton").innerHTML = 'Connect';
+      },
+      onNotification: handleNotification,
+      onLog: (message, type) => {
+        addLog(message, type);
+      },
+      onStatusChange: (message, isConnected) => {
+        setStatus(message, isConnected);
+      }
+    });
+    bleLib.connect(namePrefix).catch(error => {
+      if (error.name === 'NotFoundError' || error.name === 'AbortError') {
+        addLog("No device selected/found.");
+        setStatus("No device selected");
+        document.getElementById("connectbutton").innerHTML = 'Connect';
+      } else {
+        addLog(`Error: ${error.name} - ${error.message}`, 'error');
+        setStatus(`Error: ${error.message}`);
+        document.getElementById("connectbutton").innerHTML = 'Connect';
+      }
+    });
+  }
+}
+function handleNotification(bytes, hexString, event) {
+  addLog("BLE< " + hexString, 'info');
+}
+function readConfig() {
+  if (!bleLib || !bleLib.isConnected) {
+    addLog("Cannot read config: Not connected.", 'error');
+    return;
+  }
+  // Use library's built-in config read handler (no need to set up local state)
+  bleLib.readConfig((configBytes, error) => {
+    if (error) {
+      addLog("Config read failed: " + error.message, 'error');
+    return;
+  }
+  addLog(`Config read callback received ${configBytes ? configBytes.length : 0} bytes`, 'info');
+  if (!configBytes || configBytes.length === 0) {
+    addLog("Config read callback received empty data", 'error');
+    return;
+  }
+  // Parse the config bytes directly
+  try {
+    parseRawBytes(configBytes);
+    addLog("Config successfully loaded into UI", 'success');
+  } catch (error) {
+    addLog("Error parsing config: " + error.message, 'error');
+  }
+  }, (received, total) => {
+    addLog(`Progress: ${received}/${total} bytes`, 'info');
+  });
+}
+async function writeConfig() {
+  if (!bleLib || !bleLib.isConnected) {
+    addLog("Cannot write config: Not connected.", 'error');
+    return;
+  }
+  const packetBytes = collectPacketBytes();
+  if (!packetBytes) {
+    addLog("Cannot write config: No packet built.", 'error');
+    return;
+  }
+  addLog("Writing config to device...", 'info');
+  try {
+    await bleLib.writeConfig(new Uint8Array(packetBytes));
+    addLog("Config written successfully", 'success');
+  } catch (error) {
+    addLog("Error writing config: " + error.message, 'error');
+  }
+}
+async function reboot() {
+  if (!bleLib || !bleLib.isConnected) {
+    addLog("Cannot reboot: Not connected.", 'error');
+    return;
+  }
+  addLog("Rebooting device...", 'info');
+  try {
+    await bleLib.reboot();
+    addLog("Reboot command sent", 'success');
+  } catch (error) {
+    addLog("Error rebooting: " + error.message, 'error');
+  }
+}
+function bytesToHex(buffer) {
+  const bytes = new Uint8Array(buffer);
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+}
+function base64urlEncode(bytes) {
+  const base64 = btoa(String.fromCharCode(...bytes));
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+function base64urlDecode(str) {
+  let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (base64.length % 4) {
+    base64 += '=';
+  }
+  const binaryString = atob(base64);
+  return new Uint8Array(binaryString.split('').map(c => c.charCodeAt(0)));
+}
+function calculatePacketLength(inst) {
+  if (!schema || !inst) return 0;
+  const def = schema.packet_types[inst.pid];
+  if (!def) return 0;
+  let length = 2;
+  for (const f of def.fields) {
+    const fsize = parseSizeToken(f.size);
+    if (fsize) {
+      length += fsize;
+    } else {
+      const raw = inst.fields[f.name];
+      if (raw !== undefined && raw !== null && raw !== '') {
+        if (typeof raw === 'string' && raw.startsWith('0x')) {
+          length += (raw.length - 2) / 2;
+        } else if (typeof raw === 'string') {
+          length += new TextEncoder().encode(raw).length;
+        } else if (typeof raw === 'number') {
+          length += 1;
+        } else {
+          length += 1;
+        }
+      }
+    }
+  }
+  return length;
+}
+function updateInlinePacketSize(inst) {
+  const card = document.getElementById(`inst-${inst.uid}`);
+  if (!card) return;
+  const packetLength = calculatePacketLength(inst);
+  const hdr = card.querySelector('.packet-header');
+  if (hdr) {
+    let sizeElement = hdr.querySelector('.packet-size-inline');
+    if (sizeElement) {
+      sizeElement.textContent = `${packetLength} bytes`;
+    } else {
+      const titleElement = hdr.querySelector('.packet-title');
+      if (titleElement) {
+        const sizeSpan = document.createElement('span');
+        sizeSpan.className = 'packet-size-inline';
+        sizeSpan.textContent = `${packetLength} bytes`;
+        titleElement.appendChild(sizeSpan);
+      }
+    }
+  }
+}
+function updateConditionalEnum(sel, fieldDef, inst, dependencyValue) {
+  // Determine if this is a typeahead input or regular select
+  const isTypeahead = sel.tagName === 'INPUT' && sel.type === 'text';
+  let targetContainer;
+  
+  if(isTypeahead) {
+    // Find the associated datalist for typeahead
+    const datalistId = sel.getAttribute('list');
+    targetContainer = document.getElementById(datalistId);
+    if(targetContainer) {
+      // Clear existing options except the first empty one
+      while(targetContainer.children.length > 1) {
+        targetContainer.removeChild(targetContainer.lastChild);
+      }
+    }
+  } else {
+    // Regular select - clear existing options except the first empty one
+    while(sel.children.length > 1) {
+      sel.removeChild(sel.lastChild);
+    }
+    targetContainer = sel;
+  }
+  if(fieldDef.conditional_enum && fieldDef.conditional_enum.values) {
+    let normalizedDepValue = dependencyValue;
+    if(dependencyValue === null || dependencyValue === undefined || dependencyValue === '') {
+      return;
+    }
+    if(typeof dependencyValue === 'string') {
+      dependencyValue = dependencyValue.trim();
+      if(dependencyValue.startsWith('0x') || dependencyValue.startsWith('0X')) {
+        normalizedDepValue = '0x' + dependencyValue.substring(2).toUpperCase().padStart(4, '0');
+      } else {
+        const num = parseInt(dependencyValue, 16) || parseInt(dependencyValue, 10);
+        if(!isNaN(num)) {
+          normalizedDepValue = '0x' + num.toString(16).toUpperCase().padStart(4, '0');
+        } else {
+          console.warn('Could not parse dependency value:', dependencyValue);
+          return;
+        }
+      }
+    } else if(typeof dependencyValue === 'number') {
+      normalizedDepValue = '0x' + dependencyValue.toString(16).toUpperCase().padStart(4, '0');
+    }
+    let enumValues = null;
+    let numericValue = null;
+    if(normalizedDepValue.startsWith('0x')) {
+      numericValue = parseInt(normalizedDepValue, 16);
+    } else if(typeof normalizedDepValue === 'string') {
+      numericValue = parseInt(normalizedDepValue, 16) || parseInt(normalizedDepValue, 10);
+    } else {
+      numericValue = normalizedDepValue;
+    }
+    let originalNumeric = null;
+    if(typeof dependencyValue === 'string' && dependencyValue.startsWith('0x')) {
+      originalNumeric = parseInt(dependencyValue, 16);
+    } else if(typeof dependencyValue === 'number') {
+      originalNumeric = dependencyValue;
+    } else if(typeof dependencyValue === 'string') {
+      originalNumeric = parseInt(dependencyValue, 16) || parseInt(dependencyValue, 10);
+    }
+    const possibleKeys = [];
+    if(!isNaN(numericValue)) {
+      possibleKeys.push(numericValue);                    // number: 2
+      possibleKeys.push(numericValue.toString());          // string: '2'
+      possibleKeys.push(normalizedDepValue);              // hex string: '0x0002'
+    }
+    if(!isNaN(originalNumeric) && originalNumeric !== numericValue) {
+      possibleKeys.push(originalNumeric);                 // original as number
+      possibleKeys.push(originalNumeric.toString());       // original as string
+    }
+    possibleKeys.push(dependencyValue);                    // original value as-is: '0x2'
+    if(numericValue !== null && !isNaN(numericValue)) {
+      possibleKeys.push('0x' + numericValue.toString(16).toUpperCase()); // short hex: '0x2'
+      possibleKeys.push('0x' + numericValue.toString(16).toUpperCase().padStart(4, '0')); // padded hex: '0x0002'
+    }
+    for(const key of possibleKeys) {
+      if(fieldDef.conditional_enum.values[key] !== undefined) {
+        enumValues = fieldDef.conditional_enum.values[key];
+        console.log(`Found enum values using key:`, key, 'type:', typeof key);
+        break;
+      }
+    }
+    if(enumValues) {
+      console.log(`Populating dropdown with ${Object.keys(enumValues).length} options from enumValues:`, enumValues);
+      for(const eKey of Object.keys(enumValues)) {
+        const enumDef = enumValues[eKey];
+        const o = document.createElement('option');
+        o.value = eKey;
+        
+        if(isTypeahead && fieldDef.name === 'panel_ic_type') {
+          // For panel_ic_type typeahead, use clean text without index
+          o.textContent = `${enumDef.name}${enumDef.description ? ` — ${enumDef.description}` : ''}`;
+        } else {
+          // Regular format with index
+          o.textContent = `${eKey} — ${enumDef.name}${enumDef.description ? ` (${enumDef.description})` : ''}`;
+        }
+        
+        targetContainer.appendChild(o);
+      }
+      const options = isTypeahead ? targetContainer.options : sel.options;
+      console.log(`Dropdown now has ${options.length} options:`, Array.from(options).map(opt => ({value: opt.value, text: opt.textContent})));
+    } else {
+      console.warn('No enum values found for dependency value:', normalizedDepValue, 
+                   'Original value:', dependencyValue,
+                   'Numeric value:', numericValue,
+                   'Tried keys:', possibleKeys,
+                   'Available keys:', Object.keys(fieldDef.conditional_enum.values),
+                   'Available key types:', Object.keys(fieldDef.conditional_enum.values).map(k => typeof k));
+    }
+  }
+  const currentValue = inst.fields[fieldDef.name];
+  console.log(`Setting dropdown value. Current value in instance:`, currentValue, 'type:', typeof currentValue);
+  if(currentValue) {
+    let normalizedCurrentValue = currentValue;
+    if(typeof currentValue === 'string' && currentValue.startsWith('0x')) {
+      const num = parseInt(currentValue, 16);
+      if(!isNaN(num)) {
+        normalizedCurrentValue = num.toString();
+      }
+    } else if(typeof currentValue === 'number') {
+      normalizedCurrentValue = currentValue.toString();
+    }
+    const options = isTypeahead ? targetContainer.options : sel.options;
+    const matchingOption = Array.from(options).find(opt => {
+      if(opt.value === normalizedCurrentValue || opt.value === currentValue) {
+        return true;
+      }
+      const currentNum = typeof currentValue === 'string' && currentValue.startsWith('0x') 
+        ? parseInt(currentValue, 16) 
+        : parseInt(currentValue, 10);
+      if(!isNaN(currentNum)) {
+        return opt.value === currentNum.toString() || opt.value === currentNum;
+      }
+      return false;
+    });
+    
+    if(matchingOption) {
+      console.log(`Setting dropdown value to:`, matchingOption.value, '(normalized from:', currentValue, ')');
+      
+      if(isTypeahead) {
+        // For typeahead, set the display text and store the actual value
+        sel.value = matchingOption.textContent;
+        sel.dataset.actualValue = matchingOption.value;
+      } else {
+        sel.value = matchingOption.value;
+      }
+      
+      inst.fields[fieldDef.name] = matchingOption.value; // Update instance to normalized value
+      console.log(`Dropdown value after setting:`, sel.value);
+    } else {
+      console.log(`Current value ${currentValue} (normalized: ${normalizedCurrentValue}) not found in options, clearing`);
+      inst.fields[fieldDef.name] = '';
+      
+      if(isTypeahead) {
+        sel.value = '';
+        sel.dataset.actualValue = '';
+      } else {
+        sel.value = '';
+      }
+    }
+  } else {
+    console.log(`No current value to set, leaving as empty`);
+  }
+}
+function updateAddButtonVisibility(pid) {
+  const addBtn = document.getElementById(`addBtn-${pid}`);
+  if (!addBtn) return;
+  const def = schema.packet_types[pid];
+  const existingInstances = instances.packets.filter(p => p.pid === pid);
+  if (!def.repeatable && existingInstances.length > 0) {
+    addBtn.style.display = 'none';
+  } else {
+    addBtn.style.display = 'inline-block';
+  }
+}
+function updateTotalBytesDisplay() {
+  const totalBytes = collectPacketBytes();
+  if (!totalBytes) return;
+  const totalLength = totalBytes.length;
+  const maxLength = 4096;
+  const percentage = (totalLength / maxLength) * 100;
+  const bytesView = document.getElementById('bytesView');
+  const existingCounter = document.getElementById('bytesCounter');
+  if (existingCounter) {
+    existingCounter.remove();
+  }
+  let barClass = 'good';
+  let textClass = 'usage-good';
+  let warningMessage = '';
+  if (percentage > 100) {
+    barClass = 'over-limit';
+    textClass = 'usage-over-limit';
+    warningMessage = `<div class="warning-message">⚠️ PACKET EXCEEDS 4kB LIMIT! Current: ${totalLength} bytes (${percentage.toFixed(1)}%)</div>`;
+  } else if (percentage > 90) {
+    barClass = 'danger';
+    textClass = 'usage-danger-text';
+  } else if (percentage > 70) {
+    barClass = 'warning';
+    textClass = 'usage-warning-text';
+  }
+  const counter = document.createElement('div');
+  counter.id = 'bytesCounter';
+  counter.className = 'bytes-counter';
+  counter.innerHTML = `
+    <div class="bytes-stats">
+      <span>Total Size:</span>
+      <span class="bytes-count">${totalLength} bytes</span>
+    </div>
+    <div class="usage-bar-container">
+      <div class="usage-bar ${barClass}" style="width: ${Math.min(percentage, 100)}%"></div>
+    </div>
+    <div class="usage-text ${textClass}">
+      ${percentage.toFixed(1)}% of 4kB limit
+    </div>
+    ${warningMessage}
+  `;
+  bytesView.parentNode.insertBefore(counter, bytesView);
+}
+function hexPad(n, len=2){return n.toString(16).toUpperCase().padStart(len,'0');}
+function numToBytesLE(num, size){ const out=[]; for(let i=0;i<size;i++){ out.push(num & 0xFF); num = num >> 8; } return out; }
+function numToBytesBE(num, size){ const out=[]; for(let i=size-1;i>=0;i--){ out.push((num >> (i*8)) & 0xFF); } return out; }
+function parseSizeToken(sizeTok){ 
+  if(!sizeTok) return null; 
+  sizeTok = (''+sizeTok).trim();
+  if(sizeTok.match(/^\d+$/)){ 
+    return parseInt(sizeTok,10); 
+  }
+  if(sizeTok.match(/^(\d+) bytes?$/i)){ 
+    return parseInt(RegExp.$1,10); 
+  } 
+  if(sizeTok.match(/^variable$/i) || sizeTok.match(/^unspecified$/i)) return null; 
+  return null; 
+}
+function crc16ccitt(buf) {
+  // If bleLib is available, use it; otherwise calculate CRC16-CCITT directly
+  if (bleLib && bleLib.crc16ccitt) {
+    return bleLib.crc16ccitt(buf);
+  }
+  // Standalone CRC16-CCITT implementation
+  let crc = 0xFFFF;
+  for (let i = 0; i < buf.length; i++) {
+    crc ^= (buf[i] << 8);
+    for (let j = 0; j < 8; j++) {
+      if (crc & 0x8000) {
+        crc = (crc << 1) ^ 0x1021;
+      } else {
+        crc = crc << 1;
+      }
+      crc &= 0xFFFF;
+    }
+  }
+  return crc;
+}
+let schema = null;
+let instances = {};
+function clearBuilder(){
+document.getElementById('builderUI').innerHTML='(Load YAML to start)'; schema=null; instances={}; 
+}
+function renderBuilder(){ 
+  const container = document.getElementById('builderUI'); container.innerHTML=''; instances = {packets:[]};
+  const top = document.createElement('div');
+  top.className='';
+  const versRow = document.createElement('div'); versRow.className='field-row';
+  const vlabel = document.createElement('label'); vlabel.textContent='Protocol version'; versRow.appendChild(vlabel);
+  const vinput = document.createElement('input'); vinput.type='number'; vinput.value = schema.version || 1; vinput.min=0; vinput.style.width='80px'; versRow.appendChild(vinput);
+  container.appendChild(versRow);
+  const pktList = document.createElement('div'); pktList.id='pktList';
+  for(const k of Object.keys(schema.packet_types)){
+    const pid = k; const def = schema.packet_types[k]; const box = document.createElement('div'); box.className='panel';
+    const h = document.createElement('div'); h.style.display='flex'; h.style.justifyContent='space-between';
+    const title = document.createElement('div'); title.innerHTML = `<span class="chip">${pid}</span><strong>${def.name}</strong> <span class="small">${def.description||''}</span>`;
+    h.appendChild(title);
+    const actions = document.createElement('div');
+    const addBtn = document.createElement('button'); addBtn.textContent='Add'; addBtn.onclick = ()=> addPacketInstance(pid);
+    addBtn.id = `addBtn-${pid}`;
+    actions.appendChild(addBtn);
+    if(def.required){ const req = document.createElement('span'); req.className='small'; req.style.marginLeft='12px'; req.textContent='Required'; actions.appendChild(req); }
+    if(def.repeatable){ const rep = document.createElement('span'); rep.className='small'; rep.style.marginLeft='12px'; rep.textContent='Repeatable'; actions.appendChild(rep); }
+    h.appendChild(actions);
+    box.appendChild(h);
+    const instCont = document.createElement('div'); instCont.id = `instances-${pid}`;
+    box.appendChild(instCont);
+    pktList.appendChild(box);
+  }
+  container.appendChild(pktList);
+  for(const k of Object.keys(schema.packet_types)){ if(schema.packet_types[k].required) addPacketInstance(k); }
+  container.dataset.versionInputId = vinput;
+  function addPacketInstance(pid){ const def = schema.packet_types[pid]; const id = Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+    if(!instances.packets) instances.packets=[];
+    if(def.required && !def.repeatable) {
+      const existingRequired = instances.packets.find(p => p.pid === pid);
+      if(existingRequired) {
+        alert(`${def.name} is required and already exists. Only one instance allowed.`);
+        return;
+      }
+    }
+    const inst = {uid:id,pid:pid,fields:{}}
+    instances.packets.push(inst);
+    renderInstance(inst);
+    updateAddButtonVisibility(pid);
+  }
+  function renderInstance(inst){ const def = schema.packet_types[inst.pid]; const cont = document.getElementById('instances-'+inst.pid);
+    const card = document.createElement('div'); card.className='packet-card'; card.id='inst-'+inst.uid;
+    const hdr = document.createElement('div'); hdr.className='packet-header';
+    
+    // Add collapse/expand toggle button
+    const toggleBtn = document.createElement('button'); 
+    toggleBtn.textContent = '▼'; 
+    toggleBtn.className = 'collapse-toggle';
+    toggleBtn.style.cssText = 'background: none; border: none; cursor: pointer; font-size: 12px; padding: 4px; margin-right: 8px; color: var(--foreground);';
+    toggleBtn.onclick = () => {
+      const fieldsContainer = card.querySelector('.fields-container');
+      const isCollapsed = fieldsContainer.classList.contains('collapsed');
+      if(isCollapsed) {
+        fieldsContainer.classList.remove('collapsed');
+        fieldsContainer.classList.add('expanded');
+        toggleBtn.textContent = '▼';
+      } else {
+        fieldsContainer.classList.remove('expanded');
+        fieldsContainer.classList.add('collapsed');
+        toggleBtn.textContent = '▶';
+      }
+    };
+    
+    const titleDiv = document.createElement('div'); titleDiv.className='packet-title';
+    titleDiv.style.display = 'flex';
+    titleDiv.style.alignItems = 'center';
+    
+    const packetLength = calculatePacketLength(inst);
+    const titleContent = document.createElement('div');
+    titleContent.innerHTML = `<strong>${def.name}</strong> <span class="packet-id">${inst.pid}</span> <span class="packet-size-inline">${packetLength} bytes</span>`;
+    
+    titleDiv.appendChild(toggleBtn);
+    titleDiv.appendChild(titleContent);
+    hdr.appendChild(titleDiv);
+    if (!def.required) {
+      const actionsDiv = document.createElement('div'); actionsDiv.className='packet-actions';
+      const delBtn = document.createElement('button'); delBtn.textContent='Remove'; delBtn.onclick = ()=>{ instances.packets = instances.packets.filter(p=>p.uid!==inst.uid); cont.removeChild(card); updateAddButtonVisibility(inst.pid); };
+      actionsDiv.appendChild(delBtn);
+      hdr.appendChild(actionsDiv);
+    }
+    card.appendChild(hdr);
+    
+    // Create fields container that can be collapsed
+    const fieldsContainer = document.createElement('div');
+    fieldsContainer.className = 'fields-container';
+    
+    // New containers should start expanded
+    fieldsContainer.classList.add('expanded');
+    for(const f of def.fields){ 
+      // Hide reserved fields (but still include them in packet structure)
+      const isReserved = f.name.toLowerCase().startsWith('reserved');
+      const frow = document.createElement('div'); 
+      frow.className='field-row';
+      if (isReserved) {
+        frow.style.display = 'none';
+      }
+      const enumType = f.conditional_enum ? 'conditional enum' : (f.enum ? 'enum' : '');
+      const lname = document.createElement('div'); lname.style.width='200px'; lname.innerHTML = `<div><strong>${f.name}</strong> <span class="small">${f.description||''}</span></div><div class="small">${f.size||''}${enumType ? ' • ' + enumType : ''}${f.bits? ' • bitfield':''}</div>`;
+      frow.appendChild(lname);
+      frow.dataset.fieldName = f.name;  // Add data attribute for field identification
+      if(f.bits){
+        const bitContainer = document.createElement('div'); bitContainer.className='bit-flags'; bitContainer.style.flex='1';
+        const existing = inst.fields[f.name] != null ? (parseInt(inst.fields[f.name]) & 0xFF) : 0;
+        for(let i=7;i>=0;i--){
+          const bitIndex = i;
+          const bitWrapper = document.createElement('div'); bitWrapper.className='bit-flag';
+          const cb = document.createElement('input'); cb.type='checkbox'; cb.dataset.bit = bitIndex; cb.checked = !!(existing & (1<<bitIndex));
+          cb.onchange = ()=>{
+            let val = 0;
+            bitContainer.querySelectorAll('input[type=checkbox]').forEach(c=>{ if(c.checked) val |= (1 << (parseInt(c.dataset.bit))); });
+            inst.fields[f.name] = val;
+            updateInlinePacketSize(inst);
+          };
+          const bitDef = f.bits[bitIndex];
+          const bitName = bitDef && bitDef.name ? bitDef.name : `Bit ${bitIndex}`;
+          const bitDesc = bitDef && bitDef.description ? ` - ${bitDef.description}` : '';
+          const lbl = document.createElement('div'); lbl.className='bit-label'; lbl.textContent = `${bitName}${bitDesc}`;
+          bitWrapper.appendChild(cb); bitWrapper.appendChild(lbl); bitContainer.appendChild(bitWrapper);
+        }
+        frow.appendChild(bitContainer);
+      } else {
+        if(f.enum || f.conditional_enum){
+          // Use typeahead dropdown for panel_ic_type field
+          const isPanelIcType = f.name === 'panel_ic_type';
+          let sel;
+          
+          if(isPanelIcType) {
+            // Create typeahead dropdown with datalist
+            sel = document.createElement('input');
+            sel.type = 'text';
+            sel.style.flex='1';
+            sel.placeholder = 'Type to filter panel types...';
+            
+            // Create datalist for typeahead
+            const datalistId = `panel_ic_type_datalist_${inst.uid}`;
+            const datalist = document.createElement('datalist');
+            datalist.id = datalistId;
+            
+            sel.setAttribute('list', datalistId);
+            frow.appendChild(datalist);
+          } else {
+            // Regular select dropdown for other enums
+            sel = document.createElement('select'); 
+            sel.style.flex='1'; 
+            const optEmpty = document.createElement('option'); 
+            optEmpty.value=''; 
+            optEmpty.textContent='-- select --'; 
+            sel.appendChild(optEmpty);
+          }
+          if(f.conditional_enum) {
+            const depFieldName = f.conditional_enum.depends_on;
+            const depField = def.fields.find(field => field.name === depFieldName);
+            if(depField) {
+              const getDepValue = () => {
+                const instValue = inst.fields[depFieldName];
+                if(instValue !== undefined && instValue !== null && instValue !== '') {
+                  return instValue;
+                }
+                const depFieldRow = cont.querySelector(`.field-row[data-field-name="${depFieldName}"]`);
+                if(depFieldRow) {
+                  const depInput = depFieldRow.querySelector('select, input');
+                  if(depInput && depInput.value) {
+                    return depInput.value;
+                  }
+                }
+                return '';
+              };
+              const updateHandler = () => {
+                const depValue = getDepValue();
+                console.log(`Updating conditional enum for ${f.name}, dependency ${depFieldName} value:`, depValue, 'type:', typeof depValue);
+                updateConditionalEnum(sel, f, inst, depValue);
+                updateInlinePacketSize(inst);
+              };
+              const setupDependency = () => {
+                const depFieldRow = cont.querySelector(`.field-row[data-field-name="${depFieldName}"]`);
+                if(depFieldRow) {
+                  const depInput = depFieldRow.querySelector('select, input');
+                  if(depInput) {
+                    depInput.addEventListener('change', updateHandler);
+                    updateHandler(); // Initial update
+                    return true;
+                  }
+                }
+                return false;
+              };
+              if(!setupDependency()) {
+                setTimeout(() => {
+                  if(!setupDependency()) {
+                    updateHandler();
+                  }
+                }, 10);
+              }
+            }
+          } else if(f.enum) {
+            for(const eKey of Object.keys(f.enum)){ 
+              const enumDef = f.enum[eKey];
+              const o = document.createElement('option'); 
+              o.value = eKey; 
+              o.textContent = `${eKey} — ${enumDef.name}${enumDef.description ? ` (${enumDef.description})` : ''}`; 
+              
+              if(isPanelIcType) {
+                // For typeahead, create cleaner text without index
+                const typeaheadOption = document.createElement('option'); 
+                typeaheadOption.value = eKey; 
+                typeaheadOption.textContent = `${enumDef.name}${enumDef.description ? ` — ${enumDef.description}` : ''}`; 
+                frow.querySelector('datalist').appendChild(typeaheadOption);
+              } else {
+                // Add to select
+                sel.appendChild(o); 
+              }
+            }
+            if(inst.fields[f.name]) {
+              const fieldValue = inst.fields[f.name];
+              
+              if(isPanelIcType) {
+                // For typeahead, find matching option and set display text
+                const options = Array.from(frow.querySelector('datalist').options);
+                const matchingOption = options.find(opt => {
+                  if(opt.value === fieldValue) return true;
+                  if(typeof fieldValue === 'string' && fieldValue.startsWith('0x')) {
+                    const num = parseInt(fieldValue, 16);
+                    return opt.value === num.toString() || opt.value === num;
+                  }
+                  return false;
+                });
+                
+                if(matchingOption) {
+                  sel.value = matchingOption.textContent;
+                  sel.dataset.actualValue = matchingOption.value;
+                  if(matchingOption.value !== fieldValue) {
+                    inst.fields[f.name] = matchingOption.value;
+                  }
+                } else {
+                  // Fallback: try to find by partial match or set numeric value
+                  sel.value = fieldValue;
+                  sel.dataset.actualValue = fieldValue;
+                }
+              } else {
+                // Regular select logic
+                const matchingOption = Array.from(sel.options).find(opt => {
+                  if(opt.value === fieldValue) return true;
+                  if(typeof fieldValue === 'string' && fieldValue.startsWith('0x')) {
+                    const num = parseInt(fieldValue, 16);
+                    return opt.value === num.toString() || opt.value === num;
+                  }
+                  return false;
+                });
+                if(matchingOption) {
+                  sel.value = matchingOption.value;
+                  if(matchingOption.value !== fieldValue) {
+                    inst.fields[f.name] = matchingOption.value;
+                  }
+                } else {
+                  sel.value = fieldValue; // Fallback to original value
+                }
+              }
+            }
+          }
+          // For typeahead, we need to handle both input and change events
+          const handleTypeaheadChange = () => {
+            let actualValue;
+            
+            if(isPanelIcType) {
+              const displayValue = sel.value;
+              const options = Array.from(frow.querySelector('datalist').options);
+              const matchingOption = options.find(opt => opt.textContent === displayValue || opt.value === displayValue);
+              
+              if(matchingOption) {
+                actualValue = matchingOption.value;
+                sel.dataset.actualValue = actualValue;
+                
+                // If the current display shows just the index, update it to show the descriptive text
+                if(displayValue === matchingOption.value && displayValue !== matchingOption.textContent) {
+                  sel.value = matchingOption.textContent;
+                }
+                
+                // Auto-fill pixel_width and pixel_height from panel name dimensions
+                const panelName = matchingOption.textContent.split(' — ')[0]; // Get just the panel name part
+                const dimensionMatch = panelName.match(/(\d+)x(\d+)/);
+                
+                if(dimensionMatch) {
+                  const width = dimensionMatch[1];
+                  const height = dimensionMatch[2];
+                  
+                  // Find and update pixel_width field
+                  const widthFieldRow = cont.querySelector(`.field-row[data-field-name="pixel_width"]`);
+                  if(widthFieldRow) {
+                    const widthInput = widthFieldRow.querySelector('input');
+                    if(widthInput) {
+                      widthInput.value = width;
+                      inst.fields.pixel_width = width;
+                      console.log(`Auto-filled pixel_width to: ${width}`);
+                    }
+                  }
+                  
+                  // Find and update pixel_height field
+                  const heightFieldRow = cont.querySelector(`.field-row[data-field-name="pixel_height"]`);
+                  if(heightFieldRow) {
+                    const heightInput = heightFieldRow.querySelector('input');
+                    if(heightInput) {
+                      heightInput.value = height;
+                      inst.fields.pixel_height = height;
+                      console.log(`Auto-filled pixel_height to: ${height}`);
+                    }
+                  }
+                }
+              } else {
+                // Try to parse as number if no match found
+                const parsed = parseInt(displayValue);
+                actualValue = isNaN(parsed) ? displayValue : parsed.toString();
+                sel.dataset.actualValue = actualValue;
+              }
+            } else {
+              actualValue = sel.value;
+            }
+            
+            inst.fields[f.name] = actualValue; 
+            console.log(`Field ${f.name} changed to:`, actualValue, 'stored in instance:', inst.fields[f.name]);
+            updateInlinePacketSize(inst); 
+          };
+          
+          sel.onchange = handleTypeaheadChange;
+          if(isPanelIcType) {
+            sel.oninput = handleTypeaheadChange;
+            
+            // Also handle blur event to ensure proper display when user leaves the field
+            sel.onblur = () => {
+              setTimeout(handleTypeaheadChange, 10);
+            };
+          }
+          frow.appendChild(sel);
+          if(f.conditional_enum) {
+            let valueToStore;
+            if(isPanelIcType && sel.dataset.actualValue) {
+              valueToStore = sel.dataset.actualValue;
+            } else {
+              valueToStore = sel.value;
+            }
+            if(valueToStore) {
+              inst.fields[f.name] = valueToStore;
+            }
+          }
+        } else {
+          const input = document.createElement('input');
+          input.style.flex='1';
+          // Special handling for WiFi fields
+          if (f.name === 'ssid') {
+            input.type = 'text';
+            input.placeholder = 'WiFi SSID (fixed 32 bytes, null-terminated)';
+            input.maxLength = 32;
+          } else if (f.name === 'password') {
+            input.type = 'password';
+            input.placeholder = 'WiFi password (fixed 32 bytes, null-terminated)';
+            input.maxLength = 32;
+          } else if (f.name === 'server_url') {
+            input.type = 'text';
+            input.placeholder = 'Server URL or IP (e.g., 192.168.1.100 or server.local)';
+            input.maxLength = 63;
+          } else {
+            input.type = 'text';
+            input.placeholder = 'value (decimal or 0xHEX)';
+          }
+          input.value = inst.fields[f.name] || '';
+          input.oninput = ()=>{ inst.fields[f.name] = input.value; updateInlinePacketSize(inst); }
+          frow.appendChild(input);
+        }
+      }
+      fieldsContainer.appendChild(frow);
+    }
+    card.appendChild(fieldsContainer);
+    cont.appendChild(card);
+  }
+  container._getVersion = ()=> parseInt(container.querySelector('input[type=number]').value||schema.version||1,10);
+  
+  // Initialize expand/collapse all button state and mode
+  const button = document.getElementById('expandCollapseAllBtn');
+  if(button) button.textContent = 'Expand All';
+  
+  const modeButton = document.getElementById('modeToggleBtn');
+  const builderContainer = document.getElementById('builderUI');
+  if(modeButton && builderContainer) {
+    modeButton.textContent = 'Simple';
+    builderContainer.classList.add('simple-mode');
+  }
+  
+  // Collapse all existing fields containers on initial page load
+  setTimeout(() => {
+    const allContainers = document.querySelectorAll('.fields-container.expanded');
+    allContainers.forEach(container => {
+      container.classList.remove('expanded');
+      container.classList.add('collapsed');
+      const toggleBtn = container.parentElement.querySelector('.collapse-toggle');
+      if(toggleBtn) {
+        toggleBtn.textContent = '▶';
+      }
+    });
+    if(button) button.textContent = 'Expand All';
+  }, 10);
+}
+
+function toggleAllPackets() {
+  const allContainers = document.querySelectorAll('.fields-container');
+  const allCollapsed = Array.from(allContainers).every(container => 
+    container.classList.contains('collapsed') || !container.classList.contains('expanded')
+  );
+  
+  const button = document.getElementById('expandCollapseAllBtn');
+  
+  if (allCollapsed) {
+    // Expand all
+    allContainers.forEach(container => {
+      container.classList.remove('collapsed');
+      container.classList.add('expanded');
+      const toggleBtn = container.parentElement.querySelector('.collapse-toggle');
+      if(toggleBtn) {
+        toggleBtn.textContent = '▼';
+      }
+    });
+    if(button) button.textContent = 'Collapse All';
+  } else {
+    // Collapse all
+    allContainers.forEach(container => {
+      container.classList.remove('expanded');
+      container.classList.add('collapsed');
+      const toggleBtn = container.parentElement.querySelector('.collapse-toggle');
+      if(toggleBtn) {
+        toggleBtn.textContent = '▶';
+      }
+    });
+    if(button) button.textContent = 'Expand All';
+  }
+}
+
+function toggleMode() {
+  const button = document.getElementById('modeToggleBtn');
+  const builderContainer = document.getElementById('builderUI');
+  
+  if (button && builderContainer) {
+    const isSimple = button.textContent === 'Simple';
+    
+    if (isSimple) {
+      // Switch to Full mode
+      button.textContent = 'Full';
+      builderContainer.classList.remove('simple-mode');
+      builderContainer.classList.add('full-mode');
+    } else {
+      // Switch to Simple mode
+      button.textContent = 'Simple';
+      builderContainer.classList.remove('full-mode');
+      builderContainer.classList.add('simple-mode');
+    }
+    
+    // Update button states to reflect current mode
+    updateAllPacketButtons();
+  }
+}
+
+function updateAllPacketButtons() {
+  const allContainers = document.querySelectorAll('.fields-container');
+  
+  allContainers.forEach(container => {
+    const isCollapsed = container.classList.contains('collapsed');
+    const toggleBtn = container.parentElement.querySelector('.collapse-toggle');
+    if(toggleBtn) {
+      toggleBtn.textContent = isCollapsed ? '▶' : '▼';
+    }
+  });
+}
+function collectPacketBytes(){ if(!schema) { alert('Load schema first'); return null; }
+  const container = document.getElementById('builderUI'); const version = container._getVersion ? container._getVersion() : schema.version||1;
+  const pktBytes = [];
+  if(!instances.packets || instances.packets.length===0){ if(confirm('No packets added. Build empty payload?')){} }
+  let seq=0;
+  for(const inst of instances.packets){ const def = schema.packet_types[inst.pid]; const packet=[];
+    packet.push(seq & 0xFF);
+    const pidNum = parseInt(inst.pid);
+    packet.push(pidNum & 0xFF);
+    for(const f of def.fields){ const fsize = parseSizeToken(f.size); let raw = inst.fields[f.name];
+      if(f.enum && raw && typeof raw === 'string' && raw.startsWith('0x')===false && raw!==''){
+      }
+      if(f.enum && (!raw || raw==='')){
+      }
+      if(fsize){
+        if(f.name === 'ssid' || f.name === 'password' || f.name === 'server_url'){
+          const str = (raw || '').toString();
+          const encoder = new TextEncoder();
+          const bytes = encoder.encode(str);
+          for(let i=0;i<fsize;i++){
+            packet.push(i < bytes.length ? bytes[i] : 0);
+          }
+        } else {
+          const val = (typeof raw === 'number') ? raw : parseValueToNumber(raw);
+          if(val==null){ // default 0
+            for(let i=0;i<fsize;i++) packet.push(0);
+          } else {
+            // Use big-endian (network byte order) for server_port, little-endian for others
+            const b = (f.name === 'server_port') ? numToBytesBE(val, fsize) : numToBytesLE(val, fsize);
+            for(const bt of b) packet.push(bt);
+          }
+        }
+      } else {
+        if(!raw){ /* nothing */ }
+        else{
+          const bytes = parseValueToBytes(raw);
+          for(const bt of bytes) packet.push(bt);
+        }
+      }
+    }
+    for(const b of packet) pktBytes.push(b);
+    seq++;
+  }
+  const outer = [];
+  outer.push(0); outer.push(0);
+  outer.push(schema.version || 1);
+  for(const b of pktBytes) outer.push(b);
+  const crc = crc16ccitt(outer);
+  const totalLen = outer.length + 2;
+  const lenBytes = numToBytesLE(totalLen,2);
+  outer[0]=lenBytes[0]; outer[1]=lenBytes[1];
+  const crcBytes = numToBytesLE(crc,2);
+  outer.push(crcBytes[0]); outer.push(crcBytes[1]);
+  return outer;
+}
+function parseValueToNumber(raw){ if(raw==null) return null; raw = (''+raw).trim(); if(raw.length===0) return null; if(typeof raw === 'number') return raw; if(raw.startsWith && (raw.startsWith('0x')||raw.startsWith('0X'))) return parseInt(raw,16); if(raw.match && raw.match(/^[-+]?\d+$/)) return parseInt(raw,10); return null; }
+function parseValueToBytes(raw){ raw = (''+raw).trim(); if(raw.startsWith && (raw.startsWith('0x')||/[A-Fa-f0-9]{2}/.test(raw.replace(/\s+/g,'')))){ // hex
+  const s = raw.replace(/[^A-Fa-f0-9]/g,''); const out=[]; for(let i=0;i<s.length;i+=2){ const byte = parseInt(s.substr(i,2),16); if(!isNaN(byte)) out.push(byte);} return out;
+ } else if(raw.match && raw.match(/^\d+(\s+\d+)*$/)){
+  return raw.split(/\s+/).map(x=>parseInt(x,10)&0xFF);
+ } else {
+  const encoder = new TextEncoder(); return Array.from(encoder.encode(raw)); }
+}
+document.getElementById('loadYamlBtn').onclick = loadYamlFromFile;
+document.getElementById('resetBtn').onclick = clearBuilder;
+document.getElementById('downloadYamlBtn').onclick = ()=>{
+  const yamlText = document.getElementById('yamlInput').value;
+  const blob = new Blob([yamlText],{type:'text/yaml'}); 
+  const url = URL.createObjectURL(blob); 
+  const a=document.createElement('a'); 
+  a.href=url; 
+  a.download='ble_config.yaml'; 
+  document.body.appendChild(a); 
+  a.click(); 
+  a.remove(); 
+  URL.revokeObjectURL(url);
+};
+document.getElementById('buildBtn').onclick = ()=>{
+  try{
+    const out = collectPacketBytes(); if(!out) return; 
+    document.getElementById('bytesView').textContent = bytesToHex(out);
+    updateTotalBytesDisplay();
+  }catch(e){ alert('Build error: '+e); }
+};
+document.getElementById('exportJsonBtn').onclick = ()=>{
+  if (!schema || !instances.packets) {
+    alert('No configuration to export. Please load a schema and add some packets.');
+    return;
+  }
+  const config = {
+    version: schema.version || 1,
+    minor_version: schema.minor_version || 0,
+    packets: instances.packets.map(inst => {
+      // Log each packet's fields for debugging
+      console.log(`Exporting packet ${inst.pid}:`, inst.fields);
+      return {
+        id: inst.pid,
+        name: schema.packet_types[inst.pid]?.name || 'Unknown',
+        fields: inst.fields
+      };
+    }),
+    exported_at: new Date().toISOString(),
+    exported_by: 'OpenDisplay Config Builder'
+  };
+  console.log('Exporting config:', config);
+  const jsonString = JSON.stringify(config, null, 2);
+  const blob = new Blob([jsonString], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'oep_config.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+};
+document.getElementById('importJsonBtn').onclick = ()=>{
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const config = JSON.parse(e.target.result);
+        importJsonConfig(config);
+      } catch (error) {
+        alert('Error parsing JSON file: ' + error.message);
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+};
+document.getElementById('shareConfigBtn').onclick = ()=>{
+  if (!schema || !instances.packets) {
+    alert('No configuration to share. Please load a schema and add some packets.');
+    return;
+  }
+  const packetBytes = collectPacketBytes();
+  if (!packetBytes) {
+    alert('Failed to build packet. Please check your configuration.');
+    return;
+  }
+  const encoded = base64urlEncode(packetBytes);
+  const url = new URL(window.location);
+  url.searchParams.set('config', encoded);
+  window.history.pushState({}, '', url);
+  addLog('Config encoded in URL (binary format). Share this link!', 'success');
+  navigator.clipboard.writeText(url.toString()).then(() => {
+    addLog('URL copied to clipboard!', 'success');
+  }).catch(() => {
+    addLog('URL updated. Copy it manually from the address bar.', 'info');
+  });
+};
+const premadeConfigs = getPremadeConfigs();
+const presetSelect = document.getElementById('presetSelect');
+premadeConfigs.forEach((preset, index) => {
+  const option = document.createElement('option');
+  option.value = index;
+  option.textContent = preset.name;
+  presetSelect.appendChild(option);
+});
+presetSelect.onchange = async (e) => {
+  const selectedIndex = e.target.value;
+  if (selectedIndex === '') return;
+  
+  if (!schema) {
+    alert('Please load a schema first before loading preset configurations');
+    presetSelect.value = '';
+    return;
+  }
+  const preset = premadeConfigs[selectedIndex];
+  if (!preset) {
+    alert('Invalid preset selected');
+    presetSelect.value = '';
+    return;
+  }
+  try {
+    const response = await fetch(preset.url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const config = await response.json();
+    importJsonConfig(config);
+    presetSelect.value = '';
+  } catch (error) {
+    alert('Error loading preset configuration: ' + error.message);
+    presetSelect.value = '';
+  }
+};
+function importJsonConfig(config) {
+  if (!config.packets || !Array.isArray(config.packets)) {
+    alert('Invalid JSON configuration: missing or invalid packets array');
+    return;
+  }
+  if (!schema) {
+    alert('Please load a schema first before importing configuration');
+    return;
+  }
+  instances.packets = [];
+  for (const packetConfig of config.packets) {
+    if (!packetConfig.id || !schema.packet_types[packetConfig.id]) {
+      console.warn(`Skipping unknown packet type: ${packetConfig.id}`);
+      continue;
+    }
+    const inst = {
+      uid: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      pid: packetConfig.id,
+      fields: packetConfig.fields || {}
+    };
+    instances.packets.push(inst);
+  }
+  renderBuilderFromInstances();
+  const importedCount = config.packets.length;
+}
+function parseRawBytes(bytes){
+  if(!schema) { alert('Load schema first'); return; }
+  const view = bytes.slice();
+  if(view.length<3) throw 'Data too short';
+  const len = view[0] | (view[1]<<8);
+  const version = view[2];
+  const expectedLen = len;
+  if(expectedLen !== view.length){ console.warn('Length mismatch: claimed',expectedLen,'actual',view.length); }
+  const crcGiven = view[view.length-2] | (view[view.length-1]<<8);
+  const body = view.slice(0, view.length-2);
+  const crcCheck = crc16ccitt(body);
+  const result = {length:len,version:version,crcGiven:hexPad(crcGiven,4),crcCheck:hexPad(crcCheck,4),packets:[]};
+  let offset = 3;
+  let pktIndex = 0;
+  while(offset < view.length-2){ if(offset+2>view.length-2) break; const num = view[offset]; const id = view[offset+1]; offset +=2; const pdef = schema.packet_types['0x'+Number(id).toString(16).padStart(2,'0')] || schema.packet_types[id] || schema.packet_types[id.toString()]; const pkt={number:num,id:hexPad(id),fields:[]};
+      if(!pdef){
+         pkt.fields.push({name:'raw',value: bytesToHex(view.slice(offset, view.length-2))}); offset = view.length-2; result.packets.push(pkt); break;
+      }
+      let fixedLen = 0; let variableFields = [];
+      for(const f of pdef.fields){ const s = parseSizeToken(f.size); if(s) fixedLen += s; else variableFields.push(f); }
+      const remain = (view.length-2) - offset;
+      let takeForFixed = Math.min(fixedLen, remain);
+      let cur = offset; for(const f of pdef.fields){ const s = parseSizeToken(f.size); if(s){ if(cur + s > view.length-2){ // not enough bytes
+            const available = view.slice(cur, view.length-2); pkt.fields.push({name:f.name,raw:bytesToHex(available),note:'truncated'}); cur = view.length-2; }
+          else{
+            const valBytes = view.slice(cur, cur+s);
+            let val = 0; for(let i=0;i<s;i++) val |= (valBytes[i] << (8*i)); // LE
+            pkt.fields.push({name:f.name,raw:bytesToHex(valBytes),value:val}); cur += s;
+          }
+      } else {
+          if(pdef.fields.indexOf(f) === pdef.fields.length-1){ const available = view.slice(cur, view.length-2); pkt.fields.push({name:f.name,raw:bytesToHex(available),value:available}); cur = view.length-2; }
+          else{ pkt.fields.push({name:f.name,raw:'',note:'variable field (non-last) — cannot parse reliably)'}); }
+      } }
+      offset = cur;
+      result.packets.push(pkt);
+      pktIndex++;
+  }
+  instances.packets = [];
+  console.log('Parse result:', result);
+  console.log('Parsed packets:', result.packets);
+  for(const p of result.packets){ 
+    const idNum = parseInt(p.id,16); 
+    const pidKey = '0x' + idNum.toString(16).padStart(2,'0').toUpperCase(); 
+    console.log(`Processing packet ${p.id} -> ${pidKey}`);
+    console.log('Available schema keys:', Object.keys(schema.packet_types));
+    console.log('Schema keys details:', Object.keys(schema.packet_types).map(k => `"${k}" (type: ${typeof k})`));
+    console.log(`Looking for key: "${pidKey}" (type: ${typeof pidKey})`);
+    let def = schema.packet_types[pidKey];
+    let actualKey = pidKey;
+    console.log(`Found definition for ${pidKey}:`, def);
+    if (!def) {
+      console.log('Trying alternative key formats...');
+      const alternatives = [
+        '0x' + idNum.toString(16).padStart(2,'0').toLowerCase(),
+        idNum.toString(),
+        '0x' + idNum.toString(16).padStart(2,'0'),
+        p.id,
+        '0x' + p.id
+      ];
+      for (const altKey of alternatives) {
+        console.log(`Trying key: "${altKey}"`);
+        def = schema.packet_types[altKey];
+        if (def) {
+          console.log(`Found definition with key: "${altKey}"`);
+          actualKey = altKey;
+          break;
+        }
+      }
+    }
+    if(!def) {
+      console.warn(`No schema definition found for packet ${pidKey} after trying all formats`);
+      continue;
+    }
+    const inst = {uid:Date.now().toString(36)+Math.random().toString(36).slice(2,6), pid: actualKey, fields:{}};
+    console.log(`Created instance for ${actualKey}:`, inst);
+    for(const f of p.fields){ 
+      console.log(`Processing field ${f.name}:`, f);
+      if(f.value!=null && typeof f.value !== 'object') {
+        inst.fields[f.name] = '0x'+(f.value.toString(16));
+        console.log(`Set ${f.name} = 0x${f.value.toString(16)}`);
+      } else if(f.raw) {
+        inst.fields[f.name] = f.raw.replace(/ /g,'');
+        console.log(`Set ${f.name} = ${f.raw.replace(/ /g,'')}`);
+      }
+    }
+    console.log(`Final instance:`, inst);
+    instances.packets.push(inst);
+  }
+  renderBuilderFromInstances();
+  const parseResultEl = document.getElementById('parseResult');
+  if (parseResultEl) {
+    parseResultEl.textContent = `Parsed: length=${result.length}, version=${result.version}, crc_given=${result.crcGiven}, crc_calc=${result.crcCheck}`;
+  }
+}
+function renderBuilderFromInstances(){
+  const container = document.getElementById('builderUI'); if(!schema) return; container.innerHTML='';
+  console.log('renderBuilderFromInstances called with instances:', instances.packets);
+  const top = document.createElement('div');
+  const versRow = document.createElement('div'); versRow.className='field-row';
+  const vlabel = document.createElement('label'); vlabel.textContent='Protocol version'; versRow.appendChild(vlabel);
+  const vinput = document.createElement('input'); vinput.type='number'; vinput.value = schema.version || 1; vinput.min=0; vinput.style.width='80px'; versRow.appendChild(vinput);
+  container.appendChild(versRow);
+  const pktList = document.createElement('div');
+  for(const k of Object.keys(schema.packet_types)){
+    const pid = k; const def = schema.packet_types[k]; const box = document.createElement('div'); box.className='panel';
+    const h = document.createElement('div'); h.style.display='flex'; h.style.justifyContent='space-between';
+    const title = document.createElement('div'); title.innerHTML = `<span class="chip">${pid}</span><strong>${def.name}</strong> <span class="small">${def.description||''}</span>`;
+    h.appendChild(title);
+    const actions = document.createElement('div');
+    const addBtn = document.createElement('button'); addBtn.textContent='Add'; addBtn.onclick = ()=>{ addPacketInstance(pid); };
+    addBtn.id = `addBtn-${pid}`;
+    actions.appendChild(addBtn);
+    h.appendChild(actions);
+    box.appendChild(h);
+    const instCont = document.createElement('div'); instCont.id = `instances-${pid}`;
+    const instancesForPid = instances.packets.filter(p=>p.pid===pid);
+    console.log(`Rendering instances for ${pid}:`, instancesForPid);
+    console.log(`All instances:`, instances.packets.map(p => ({pid: p.pid, type: typeof p.pid})));
+    for(const inst of instancesForPid){
+      const card = document.createElement('div'); card.className='packet-card'; card.id='inst-'+inst.uid;
+      const hdr = document.createElement('div'); hdr.className='packet-header';
+      
+      // Add collapse/expand toggle button
+      const toggleBtn = document.createElement('button'); 
+      toggleBtn.textContent = '▶'; // Start collapsed for read config
+      toggleBtn.className = 'collapse-toggle';
+      toggleBtn.style.cssText = 'background: none; border: none; cursor: pointer; font-size: 12px; padding: 4px; margin-right: 8px; color: var(--foreground);';
+      toggleBtn.onclick = () => {
+        const fieldsContainer = card.querySelector('.fields-container');
+        const isCollapsed = fieldsContainer.classList.contains('collapsed');
+        if(isCollapsed) {
+          fieldsContainer.classList.remove('collapsed');
+          fieldsContainer.classList.add('expanded');
+          toggleBtn.textContent = '▼';
+        } else {
+          fieldsContainer.classList.remove('expanded');
+          fieldsContainer.classList.add('collapsed');
+          toggleBtn.textContent = '▶';
+        }
+      };
+      
+      const titleDiv = document.createElement('div'); titleDiv.className='packet-title';
+      titleDiv.style.display = 'flex';
+      titleDiv.style.alignItems = 'center';
+      
+      const packetLength = calculatePacketLength(inst);
+      const titleContent = document.createElement('div');
+      titleContent.innerHTML = `<strong>${def.name}</strong> <span class="packet-id">${inst.pid}</span> <span class="packet-size-inline">${packetLength} bytes</span>`;
+      
+      titleDiv.appendChild(toggleBtn);
+      titleDiv.appendChild(titleContent);
+      hdr.appendChild(titleDiv);
+      if (!def.required) {
+        const actionsDiv = document.createElement('div'); actionsDiv.className='packet-actions';
+        const delBtn = document.createElement('button'); delBtn.textContent='Remove'; delBtn.onclick = ()=>{ instances.packets = instances.packets.filter(p=>p.uid!==inst.uid); instCont.removeChild(card); updateAddButtonVisibility(inst.pid); };
+        actionsDiv.appendChild(delBtn);
+        hdr.appendChild(actionsDiv);
+      }
+      card.appendChild(hdr);
+      
+      // Create fields container that can be collapsed (start collapsed)
+      const fieldsContainer = document.createElement('div');
+      fieldsContainer.className = 'fields-container collapsed';
+      for(const f of def.fields){ 
+        // Hide reserved fields (but still include them in packet structure)
+        const isReserved = f.name.toLowerCase().startsWith('reserved');
+        const frow = document.createElement('div'); 
+        frow.className='field-row';
+        if (isReserved) {
+          frow.style.display = 'none';
+        }
+        const enumType = f.conditional_enum ? 'conditional enum' : (f.enum ? 'enum' : '');
+        const lname = document.createElement('div'); lname.style.width='200px'; lname.innerHTML = `<div><strong>${f.name}</strong> <span class="small">${f.description||''}</span></div><div class="small">${f.size||''}${enumType ? ' • ' + enumType : ''}${f.bits? ' • bitfield':''}</div>`;
+        frow.appendChild(lname);
+        frow.dataset.fieldName = f.name;  // Add data attribute for field identification
+        if(f.bits){
+          const bitContainer = document.createElement('div'); bitContainer.className='bit-flags'; bitContainer.style.flex='1';
+          const existing = inst.fields[f.name] != null ? (parseInt(inst.fields[f.name]) & 0xFF) : 0;
+          for(let i=7;i>=0;i--){
+            const bitIndex = i;
+            const bitWrapper = document.createElement('div'); bitWrapper.className='bit-flag';
+            const cb = document.createElement('input'); cb.type='checkbox'; cb.dataset.bit = bitIndex; cb.checked = !!(existing & (1<<bitIndex));
+            cb.onchange = ()=>{
+              let val = 0;
+              bitContainer.querySelectorAll('input[type=checkbox]').forEach(c=>{ if(c.checked) val |= (1 << (parseInt(c.dataset.bit))); });
+              inst.fields[f.name] = val;
+              updateInlinePacketSize(inst);
+            };
+            const bitDef = f.bits[bitIndex];
+            const bitName = bitDef && bitDef.name ? bitDef.name : `Bit ${bitIndex}`;
+            const bitDesc = bitDef && bitDef.description ? ` - ${bitDef.description}` : '';
+            const lbl = document.createElement('div'); lbl.className='bit-label'; lbl.textContent = `${bitName}${bitDesc}`;
+            bitWrapper.appendChild(cb); bitWrapper.appendChild(lbl); bitContainer.appendChild(bitWrapper);
+          }
+          frow.appendChild(bitContainer);
+        } else if(f.enum || f.conditional_enum){ 
+          // Use typeahead dropdown for panel_ic_type field
+          const isPanelIcType = f.name === 'panel_ic_type';
+          let sel;
+          
+          if(isPanelIcType) {
+            // Create typeahead dropdown with datalist
+            sel = document.createElement('input');
+            sel.type = 'text';
+            sel.style.flex='1';
+            sel.placeholder = 'Type to filter panel types...';
+            
+            // Create datalist for typeahead
+            const datalistId = `panel_ic_type_datalist_${inst.uid}`;
+            const datalist = document.createElement('datalist');
+            datalist.id = datalistId;
+            
+            sel.setAttribute('list', datalistId);
+            frow.appendChild(datalist);
+          } else {
+            // Regular select dropdown for other enums
+            sel = document.createElement('select'); 
+            sel.style.flex='1'; 
+            const optEmpty = document.createElement('option'); 
+            optEmpty.value=''; 
+            optEmpty.textContent='-- select --'; 
+            sel.appendChild(optEmpty);
+          }
+          if(f.conditional_enum) {
+            const depFieldName = f.conditional_enum.depends_on;
+            const depField = def.fields.find(field => field.name === depFieldName);
+            if(depField) {
+              const getDepValue = () => {
+                const instValue = inst.fields[depFieldName];
+                if(instValue !== undefined && instValue !== null && instValue !== '') {
+                  return instValue;
+                }
+                const depFieldRow = card.querySelector(`.field-row[data-field-name="${depFieldName}"]`);
+                if(depFieldRow) {
+                  const depInput = depFieldRow.querySelector('select, input');
+                  if(depInput && depInput.value) {
+                    return depInput.value;
+                  }
+                }
+                return '';
+              };
+              const updateHandler = () => {
+                const depValue = getDepValue();
+                console.log(`Updating conditional enum for ${f.name}, dependency ${depFieldName} value:`, depValue, 'type:', typeof depValue);
+                updateConditionalEnum(sel, f, inst, depValue);
+                updateInlinePacketSize(inst);
+              };
+              const setupDependency = () => {
+                const depFieldRow = card.querySelector(`.field-row[data-field-name="${depFieldName}"]`);
+                if(depFieldRow) {
+                  const depInput = depFieldRow.querySelector('select, input');
+                  if(depInput) {
+                    depInput.addEventListener('change', updateHandler);
+                    updateHandler(); // Initial update
+                    return true;
+                  }
+                }
+                return false;
+              };
+              if(!setupDependency()) {
+                setTimeout(() => {
+                  if(!setupDependency()) {
+                    updateHandler();
+                  }
+                }, 10);
+              }
+            }
+          } else if(f.enum) {
+            for(const eKey of Object.keys(f.enum)){ 
+              const enumDef = f.enum[eKey];
+              
+              if(isPanelIcType) {
+                // For typeahead, create cleaner text without index
+                const typeaheadOption = document.createElement('option'); 
+                typeaheadOption.value = eKey; 
+                typeaheadOption.textContent = `${enumDef.name}${enumDef.description ? ` — ${enumDef.description}` : ''}`; 
+                frow.querySelector('datalist').appendChild(typeaheadOption);
+              } else {
+                // Regular select
+                const o = document.createElement('option'); 
+                o.value = eKey; 
+                o.textContent = `${eKey} — ${enumDef.name}${enumDef.description ? ` (${enumDef.description})` : ''}`; 
+                sel.appendChild(o); 
+              }
+            }
+            if(inst.fields[f.name]) {
+              const fieldValue = inst.fields[f.name];
+              
+              if(isPanelIcType) {
+                // For typeahead, find matching option and set display text
+                const options = Array.from(frow.querySelector('datalist').options);
+                const matchingOption = options.find(opt => {
+                  if(opt.value === fieldValue) return true;
+                  if(typeof fieldValue === 'string' && fieldValue.startsWith('0x')) {
+                    const num = parseInt(fieldValue, 16);
+                    return opt.value === num.toString() || opt.value === num;
+                  }
+                  return false;
+                });
+                
+                if(matchingOption) {
+                  sel.value = matchingOption.textContent;
+                  sel.dataset.actualValue = matchingOption.value;
+                  if(matchingOption.value !== fieldValue) {
+                    inst.fields[f.name] = matchingOption.value;
+                  }
+                } else {
+                  // Fallback: try to find by partial match or set numeric value
+                  sel.value = fieldValue;
+                  sel.dataset.actualValue = fieldValue;
+                }
+              } else {
+                // Regular select logic
+                const matchingOption = Array.from(sel.options).find(opt => {
+                  if(opt.value === fieldValue) return true;
+                  if(typeof fieldValue === 'string' && fieldValue.startsWith('0x')) {
+                    const num = parseInt(fieldValue, 16);
+                    return opt.value === num.toString() || opt.value === num;
+                  }
+                  return false;
+                });
+                if(matchingOption) {
+                  sel.value = matchingOption.value;
+                  if(matchingOption.value !== fieldValue) {
+                    inst.fields[f.name] = matchingOption.value;
+                  }
+                } else {
+                  sel.value = fieldValue; // Fallback to original value
+                }
+              }
+            }
+          }
+          // For typeahead, we need to handle both input and change events
+          const handleTypeaheadChange = () => {
+            let actualValue;
+            
+            if(isPanelIcType) {
+              // For typeahead, find matching option value
+              const displayValue = sel.value;
+              const options = Array.from(frow.querySelector('datalist').options);
+              const matchingOption = options.find(opt => opt.textContent === displayValue || opt.value === displayValue);
+              
+              if(matchingOption) {
+                actualValue = matchingOption.value;
+                sel.dataset.actualValue = actualValue;
+                
+                // If current display shows just the index, update it to show the descriptive text
+                if(displayValue === matchingOption.value && displayValue !== matchingOption.textContent) {
+                  sel.value = matchingOption.textContent;
+                }
+                
+                // Auto-fill pixel_width and pixel_height from panel name dimensions
+                const panelName = matchingOption.textContent.split(' — ')[0]; // Get just the panel name part
+                const dimensionMatch = panelName.match(/(\d+)x(\d+)/);
+                
+                if(dimensionMatch) {
+                  const width = dimensionMatch[1];
+                  const height = dimensionMatch[2];
+                  
+                  // Find and update pixel_width field
+                  const widthFieldRow = card.querySelector('.fields-container .field-row[data-field-name="pixel_width"]');
+                  if(widthFieldRow) {
+                    const widthInput = widthFieldRow.querySelector('input');
+                    if(widthInput) {
+                      widthInput.value = width;
+                      inst.fields.pixel_width = width;
+                      console.log(`Auto-filled pixel_width to: ${width}`);
+                    }
+                  }
+                  
+                  // Find and update pixel_height field
+                  const heightFieldRow = card.querySelector('.fields-container .field-row[data-field-name="pixel_height"]');
+                  if(heightFieldRow) {
+                    const heightInput = heightFieldRow.querySelector('input');
+                    if(heightInput) {
+                      heightInput.value = height;
+                      inst.fields.pixel_height = height;
+                      console.log(`Auto-filled pixel_height to: ${height}`);
+                    }
+                  }
+                }
+              } else {
+                // Try to parse as number if no match found
+                const parsed = parseInt(displayValue);
+                actualValue = isNaN(parsed) ? displayValue : parsed.toString();
+                sel.dataset.actualValue = actualValue;
+              }
+            } else {
+              actualValue = sel.value;
+            }
+            
+            inst.fields[f.name] = actualValue; 
+            console.log(`Field ${f.name} changed to:`, actualValue, 'stored in instance:', inst.fields[f.name]);
+            updateInlinePacketSize(inst); 
+          };
+          
+          sel.onchange = handleTypeaheadChange;
+          if(isPanelIcType) {
+            sel.oninput = handleTypeaheadChange;
+            
+            // Also handle blur event to ensure proper display when user leaves the field
+            sel.onblur = () => {
+              setTimeout(handleTypeaheadChange, 10);
+            };
+          }
+          frow.appendChild(sel);
+        } else { 
+          const input = document.createElement('input');
+          input.style.flex='1';
+          if (f.name === 'ssid') {
+            input.type = 'text';
+            input.placeholder = 'WiFi SSID (fixed 32 bytes, null-terminated)';
+            input.maxLength = 32;
+            input.value = inst.fields[f.name] || '';
+          } else if (f.name === 'password') {
+            input.type = 'password';
+            input.placeholder = 'WiFi password (fixed 32 bytes, null-terminated)';
+            input.maxLength = 32;
+            input.value = inst.fields[f.name] || '';
+          } else if (f.name === 'server_url') {
+            input.type = 'text';
+            input.placeholder = 'Server URL or IP (e.g., 192.168.1.100 or server.local)';
+            input.maxLength = 63;
+            input.value = inst.fields[f.name] || '';
+          } else {
+            input.type = 'text';
+            input.placeholder = 'value (decimal or 0xHEX)';
+            input.value = (inst.fields[f.name] && inst.fields[f.name].toString().includes('x')) ? parseInt(inst.fields[f.name], 16) : (inst.fields[f.name] || '');
+          }
+          input.oninput = ()=> { inst.fields[f.name] = input.value; updateInlinePacketSize(inst); };
+          frow.appendChild(input);
+        }
+        fieldsContainer.appendChild(frow);
+      }
+      card.appendChild(fieldsContainer);
+      
+      instCont.appendChild(card);
+    }
+
+    box.appendChild(instCont);
+    pktList.appendChild(box);
+  }
+  container.appendChild(pktList);
+  
+  // Initialize mode for renderBuilderFromInstances
+  const modeButton = document.getElementById('modeToggleBtn');
+  if(modeButton && !container.classList.contains('simple-mode') && !container.classList.contains('full-mode')) {
+    modeButton.textContent = 'Simple';
+    container.classList.add('simple-mode');
+  }
+  
+  container._getVersion = ()=> parseInt(container.querySelector('input[type=number]').value||schema.version||1,10);
+  for(const k of Object.keys(schema.packet_types)){
+    updateAddButtonVisibility(k);
+  }
+  function addPacketInstance(pid){ 
+    const def = schema.packet_types[pid];
+    if(def.required && !def.repeatable) {
+      const existingRequired = instances.packets.find(p => p.pid === pid);
+      if(existingRequired) {
+        alert(`${def.name} is required and already exists. Only one instance allowed.`);
+        return;
+      }
+    }
+    const id = Date.now().toString(36)+Math.random().toString(36).slice(2,6); 
+    const inst = {uid:id,pid:pid,fields:{}}; 
+    instances.packets.push(inst); 
+    renderBuilderFromInstances(); 
+  }
+}
+async function loadYamlFromFile() {
+  try {
+    const response = await fetch('/firmware/config/config.yaml');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const yamlText = await response.text();
+    document.getElementById('yamlInput').value = yamlText;
+    loadYamlFromText(yamlText);
+  } catch (error) {
+    console.error('Failed to load config.yaml:', error);
+    document.getElementById('yamlInput').placeholder = 'Failed to load config.yaml. Please check the file exists and try again.';
+    document.getElementById('yamlInput').value = '';
+    alert('Failed to load config.yaml. Please check the file exists and try again.');
+  }
+}
+function getUrlParameter(name) {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get(name);
+}
+async function loadConfigFromUrl() {
+  const configParam = getUrlParameter('config');
+  if (!configParam) {
+    return;
+  }
+  if (!schema) {
+    addLog('Schema not loaded yet, waiting...', 'info');
+    setTimeout(loadConfigFromUrl, 100);
+    return;
+  }
+  const configParamTrimmed = configParam.trim();
+  const isEncodedConfig = configParamTrimmed.length > 50 && 
+                          !configParamTrimmed.includes('/') && 
+                          !configParamTrimmed.endsWith('.json') &&
+                          !configParamTrimmed.includes('..');
+  
+  if (isEncodedConfig) {
+    try {
+      addLog('Loading config from URL (binary format)...', 'info');
+      const bytes = base64urlDecode(configParamTrimmed);
+      parseRawBytes(bytes);
+      addLog('Config loaded from URL successfully', 'success');
+      showAutoInstallPanel();
+    } catch (error) {
+      addLog(`Error decoding config from URL: ${error.message}`, 'error');
+      console.error('Failed to decode config from URL:', error);
+    }
+    return;
+  }
+  let configUrl = configParamTrimmed;
+  if (!configUrl.includes('/')) {
+    configUrl = '/firmware/config/presets/' + configUrl;
+  } else {
+    if (!configUrl.startsWith('presets/') && !configUrl.startsWith('/firmware/config/presets/')) {
+      addLog(`Error: Config must be in presets folder. Provided: ${configParam}`, 'error');
+      return;
+    }
+    if (configUrl.startsWith('presets/')) {
+      configUrl = '/firmware/config/' + configUrl;
+    }
+  }
+  if (!configUrl.endsWith('.json')) {
+    configUrl += '.json';
+  }
+  if (configUrl.includes('..') || (!configUrl.startsWith('/firmware/config/presets/') && !configUrl.startsWith('https://'))) {
+    addLog(`Error: Invalid config path. Only files in presets folder are allowed.`, 'error');
+    return;
+  }
+  try {
+    addLog(`Loading config from presets: ${configUrl}`, 'info');
+    const response = await fetch(configUrl);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const config = await response.json();
+    importJsonConfig(config);
+    addLog('Config loaded from presets successfully', 'success');
+    showAutoInstallPanel();
+  } catch (error) {
+    addLog(`Error loading config from presets: ${error.message}`, 'error');
+    console.error('Failed to load config from presets:', error);
+  }
+}
+function showAutoInstallPanel() {
+  const panel = document.getElementById('autoInstallPanel');
+  if (panel) {
+    panel.classList.add('show');
+  }
+}
+function openBleTester() {
+  window.open('/firmware/display/', '_blank');
+}
+async function startAutoInstall() {
+  const autoInstallBtn = document.getElementById('autoInstallBtn');
+  if (autoInstallBtn.disabled) {
+    return;
+  }
+  autoInstallBtn.disabled = true;
+  autoInstallBtn.textContent = 'Installing...';
+  try {
+    addLog('Starting auto-install sequence...', 'info');
+    addLog('Step 1: Connecting to BLE device...', 'info');
+    await connectToBleDevice();
+    addLog('Step 2: Waiting for connection to stabilize...', 'info');
+        await bleLib.delay(2000);
+    addLog('Step 3: Writing config to device...', 'info');
+    await writeConfigToDevice();
+    addLog('Step 4: Waiting before reboot...', 'info');
+        await bleLib.delay(1500);
+    addLog('Step 5: Rebooting device...', 'info');
+    reboot();
+    
+    addLog('Auto-install sequence completed!', 'success');
+    const bleTesterBtn = document.getElementById('openBleTesterBtn');
+    if (bleTesterBtn && autoInstallBtn) {
+      autoInstallBtn.style.display = 'none';
+      bleTesterBtn.style.display = 'block';
+    }
+  } catch (error) {
+    addLog(`Auto-install failed: ${error.message}`, 'error');
+    autoInstallBtn.disabled = false;
+    autoInstallBtn.textContent = 'Auto Install to Device';
+    alert('Auto-install failed: ' + error.message);
+  }
+}
+function connectToBleDevice() {
+  return new Promise((resolve, reject) => {
+    if (bleLib && bleLib.isConnected) {
+      addLog('Already connected to device', 'info');
+      resolve();
+      return;
+    }
+    const namePrefix = document.getElementById('namePrefix').value.trim();
+    if (!namePrefix) {
+      reject(new Error('Device filter needed'));
+      return;
+    }
+    if (!bleLib) {
+      bleLib = new OpenDisplayBLE({
+        deviceNamePrefix: namePrefix,
+        maxReconnectAttempts: 3,
+        reconnectDelay: 2000,
+        onConnect: () => {
+          addLog('BLE connection established', 'success');
+          document.getElementById("connectbutton").innerHTML = 'Disconnect';
+          resolve();
+        },
+        onDisconnect: () => {
+          addLog('Device disconnected.');
+          setStatus("Disconnected");
+          document.getElementById("connectbutton").innerHTML = 'Connect';
+        },
+        onError: (error) => {
+          addLog(`Error: ${error.name} - ${error.message}`, 'error');
+          setStatus(`Error: ${error.message}`);
+          document.getElementById("connectbutton").innerHTML = 'Connect';
+          reject(error);
+        },
+        onNotification: handleNotification,
+        onLog: (message, type) => {
+          addLog(message, type);
+        },
+        onStatusChange: (message, isConnected) => {
+          setStatus(message, isConnected);
+        }
+      });
+    }
+    addLog("Requesting device with filters: " + namePrefix);
+    setStatus("Requesting device...");
+    document.getElementById("connectbutton").innerHTML = 'Scanning...';
+    bleLib.connect(namePrefix)
+      .then(() => {
+        // onConnect callback will call resolve()
+      })
+      .catch(error => {
+        if (error.name === 'NotFoundError' || error.name === 'AbortError') {
+          reject(new Error('No device selected/found'));
+        } else {
+          reject(error);
+        }
+      });
+  });
+}
+async function writeConfigToDevice() {
+  if (!bleLib || !bleLib.isConnected) {
+    throw new Error('Not connected to device');
+  }
+  const packetBytes = collectPacketBytes();
+  if (!packetBytes) {
+    throw new Error('No packet built');
+  }
+  addLog("Writing config to device...", 'info');
+  await bleLib.writeConfig(new Uint8Array(packetBytes));
+  addLog("Config written successfully", 'success');
+  await bleLib.delay(1000);
+}
+function loadYamlFromText(yamlText) {
+  try {
+    const doc = jsyaml.load(yamlText);
+    if (!doc || !doc.ble_proto) {
+      alert('Invalid YAML or missing ble_proto root');
+      return;
+    }
+    schema = doc.ble_proto;
+    const versionInfo = document.getElementById('versionInfo');
+    const version = schema.version || 1;
+    const minorVersion = schema.minor_version || 0;
+    versionInfo.textContent = `(v${version}.${minorVersion})`;
+    renderBuilder();
+    loadConfigFromUrl();
+  } catch (e) {
+    alert('YAML parse error: ' + e);
+  }
+}
+loadYamlFromFile();
+</script>
+  <div class="col panel footer">
+    <div class="footer-links">
+      <a href="/index.html">Home</a>
+      <span class="footer-separator">•</span>
+      <a href="https://github.com/OpenDisplay-org" target="_blank" aria-label="View on GitHub (opens in new tab)">GitHub</a>
+      <span class="footer-separator">•</span>
+      <a href="https://discord.gg/XmTHz8RfJE" target="_blank" aria-label="Join OpenDisplay Discord community (opens in new tab)">Discord</a>
+      <span class="footer-separator">•</span>
+      <a href="/impressum.html">imprint (Impressum)</a>
+      <span class="footer-separator">•</span>
+      <a href="/datenschutz.html">privacy (Datenschutz)</a>
+    </div>
+  </div>
+</body>
+</html>
+
+

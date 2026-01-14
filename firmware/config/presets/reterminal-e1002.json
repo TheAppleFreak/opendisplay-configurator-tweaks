@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "minor_version": 1,
+  "packets": [
+    {
+      "id": "1",
+      "name": "system_config",
+      "fields": {
+        "ic_type": "2",
+        "communication_modes": 1,
+        "pwr_pin": "43",
+        "device_flags": 1
+      }
+    },
+    {
+      "id": "2",
+      "name": "manufacturer_data",
+      "fields": {
+        "manufacturer_id": "1",
+        "board_type": "0",
+        "board_revision": "1"
+      }
+    },
+    {
+      "id": "4",
+      "name": "power_option",
+      "fields": {
+        "power_mode": "1",
+        "battery_capacity_mah": "0x7d0",
+        "sleep_timeout_ms": "0x3e8",
+        "tx_power": "0x8",
+        "sleep_flags": "0x0",
+        "battery_sense_pin": "1",
+        "battery_sense_enable_pin": "21",
+        "battery_sense_flags": "0x0",
+        "capacity_estimator": "1",
+        "voltage_scaling_factor": "0x64",
+        "deep_sleep_current_ua": "0x0",
+        "reserved": "0x0"
+      }
+    },
+    {
+      "id": "32",
+      "name": "display",
+      "fields": {
+        "instance_number": "0",
+        "display_technology": "1",
+        "panel_ic_type": "35",
+        "pixel_width": "800",
+        "pixel_height": "480",
+        "oepl_tagtype": "0x20",
+        "rotation": "0",
+        "partial_update_support": "0",
+        "color_scheme": "4",
+        "transmission_modes": 10,
+        "reset_pin": "12",
+        "busy_pin": "13",
+        "dc_pin": "11",
+        "cs_pin": "10",
+        "data_pin": "9",
+        "clk_pin": "7"
+      }
+    },
+    {
+      "id": "36",
+      "name": "data_bus",
+      "fields": {
+        "instance_number": "0",
+        "bus_type": "1",
+        "pin_2": "19",
+        "pin_1": "20"
+      }
+    }
+  ],
+  "exported_at": "2025-11-22T08:34:44.319Z"
+}

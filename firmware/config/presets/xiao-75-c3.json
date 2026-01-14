@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "minor_version": 1,
+  "packets": [
+    {
+      "id": "1",
+      "name": "system_config",
+      "fields": {
+        "ic_type": "3",
+        "communication_modes": "0x1",
+        "device_flags": "0x0",
+        "pwr_pin": "0xff",
+        "reserved": "0x0"
+      }
+    },
+    {
+      "id": "2",
+      "name": "manufacturer_data",
+      "fields": {
+        "manufacturer_id": "1",
+        "board_type": "4",
+        "board_revision": "0x1",
+        "reserved": "0x0"
+      }
+    },
+    {
+      "id": "4",
+      "name": "power_option",
+      "fields": {
+        "power_mode": "2",
+        "battery_capacity_mah": "2000",
+        "sleep_timeout_ms": "0x7d0",
+        "tx_power": "0x8",
+        "sleep_flags": "0x0",
+        "battery_sense_pin": "0xff",
+        "battery_sense_enable_pin": "0xff",
+        "battery_sense_flags": "0x0",
+        "capacity_estimator": "1",
+        "voltage_scaling_factor": "0x3e8",
+        "deep_sleep_current_ua": "0x0",
+        "reserved": "0x0"
+      }
+    },
+    {
+      "id": "32",
+      "name": "display",
+      "fields": {
+        "instance_number": "0x0",
+        "display_technology": "1",
+        "panel_ic_type": "59",
+        "pixel_width": "0x320",
+        "pixel_height": "0x1e0",
+        "active_width_mm": "0x0",
+        "active_height_mm": "0x0",
+        "oepl_tagtype": "0x0",
+        "rotation": "0",
+        "reset_pin": "0x2",
+        "busy_pin": "0x7",
+        "dc_pin": "0x5",
+        "cs_pin": "0x3",
+        "data_pin": "0xa",
+        "partial_update_support": "0",
+        "color_scheme": "0",
+        "transmission_modes": "10",
+        "clk_pin": "0x8",
+        "reserved_pin_2": "0x0",
+        "reserved_pin_3": "0x0",
+        "reserved_pin_4": "0x0",
+        "reserved_pin_5": "0x0",
+        "reserved_pin_6": "0x0",
+        "reserved_pin_7": "0x0",
+        "reserved_pin_8": "0x0",
+        "reserved": "0x0"
+      }
+    }
+  ],
+  "exported_at": "2025-11-22T08:13:24.313Z"
+}

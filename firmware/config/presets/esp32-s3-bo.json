@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "minor_version": 1,
+  "packets": [
+    {
+      "id": "1",
+      "name": "system_config",
+      "fields": {
+        "ic_type": "2",
+        "communication_modes": 1,
+        "pwr_pin": "0xFF",
+        "device_flags": 0
+      }
+    },
+    {
+      "id": "2",
+      "name": "manufacturer_data",
+      "fields": {
+        "manufacturer_id": "1",
+        "board_type": "2",
+        "board_revision": "1"
+      }
+    },
+    {
+      "id": "4",
+      "name": "power_option",
+      "fields": {
+        "power_mode": "2",
+        "battery_capacity_mah": "0",
+        "sleep_timeout_ms": "1000",
+        "tx_power": "8",
+        "battery_sense_pin": "0xFF",
+        "battery_sense_enable_pin": "0xFF",
+        "voltage_scaling_factor": "0"
+      }
+    },
+    {
+      "id": "32",
+      "name": "display",
+      "fields": {
+        "instance_number": "0",
+        "display_technology": "1",
+        "panel_ic_type": "39",
+        "pixel_width": "800",
+        "pixel_height": "480",
+        "oepl_tagtype": "0x20",
+        "rotation": "0",
+        "partial_update_support": "0",
+        "color_scheme": "0",
+        "transmission_modes": 10,
+        "reset_pin": "1",
+        "busy_pin": "6",
+        "dc_pin": "4",
+        "cs_pin": "2",
+        "data_pin": "9",
+        "clk_pin": "7"
+      }
+    },
+    {
+      "id": "33",
+      "name": "led",
+      "fields": {
+        "instance_number": "0",
+        "led_type": "0",
+        "led_1_r": "21",
+        "led_2_g": "21",
+        "led_3_b": "21"
+      }
+    }
+  ],
+  "exported_at": "2025-11-21T19:50:26.343Z"
+}
