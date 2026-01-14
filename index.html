@@ -62,22 +62,7 @@ button:active{transform:none}
 .field-row[data-field-name="data_pin"]{order:13}
 .field-row[data-field-name="partial_update_support"]{order:14}
 .field-row[data-field-name="transmission_modes"]{order:15}
-/* Simple mode: hide non-essential fields */
-.simple-mode .field-row[data-field-name="active_width_mm"],
-.simple-mode .field-row[data-field-name="active_height_mm"],
-.simple-mode .field-row[data-field-name="legacy_tagtype"],
-.simple-mode .field-row[data-field-name="reset_pin"],
-.simple-mode .field-row[data-field-name="busy_pin"],
-.simple-mode .field-row[data-field-name="dc_pin"],
-.simple-mode .field-row[data-field-name="cs_pin"],
-.simple-mode .field-row[data-field-name="data_pin"],
-.simple-mode .field-row[data-field-name="partial_update_support"],
-.simple-mode .field-row[data-field-name="transmission_modes"],
-.simple-mode .field-row[data-field-name="clk_pin"],
-.simple-mode .field-row[data-field-name="full_update_mC"]
-{display:none}
-/* Full mode: show all fields */
-.full-mode .field-row{display:flex!important}
+
 .field-row[data-field-name="transmission_modes"]{order:15}
 .field-row[data-field-name="clk_pin"]{order:16}
 .field-row[data-field-name="full_update_mC"]{order:17}
@@ -279,7 +264,6 @@ a:hover {
       </div>
     </div>
     <div style="margin-top: 6px; margin-bottom: 6px; text-align: right;">
-      <button id="modeToggleBtn" onclick="toggleMode()" style="margin-right: 8px;">Simple</button>
       <button id="expandCollapseAllBtn" onclick="toggleAllPackets()">Expand All</button>
     </div>
   </div>
@@ -1196,16 +1180,9 @@ function renderBuilder(){
   }
   container._getVersion = ()=> parseInt(container.querySelector('input[type=number]').value||schema.version||1,10);
   
-  // Initialize expand/collapse all button state and mode
+  // Initialize expand/collapse all button state
   const button = document.getElementById('expandCollapseAllBtn');
   if(button) button.textContent = 'Expand All';
-  
-  const modeButton = document.getElementById('modeToggleBtn');
-  const builderContainer = document.getElementById('builderUI');
-  if(modeButton && builderContainer) {
-    modeButton.textContent = 'Simple';
-    builderContainer.classList.add('simple-mode');
-  }
   
   // Collapse all existing fields containers on initial page load
   setTimeout(() => {
@@ -1255,29 +1232,7 @@ function toggleAllPackets() {
   }
 }
 
-function toggleMode() {
-  const button = document.getElementById('modeToggleBtn');
-  const builderContainer = document.getElementById('builderUI');
-  
-  if (button && builderContainer) {
-    const isSimple = button.textContent === 'Simple';
-    
-    if (isSimple) {
-      // Switch to Full mode
-      button.textContent = 'Full';
-      builderContainer.classList.remove('simple-mode');
-      builderContainer.classList.add('full-mode');
-    } else {
-      // Switch to Simple mode
-      button.textContent = 'Simple';
-      builderContainer.classList.remove('full-mode');
-      builderContainer.classList.add('simple-mode');
-    }
-    
-    // Update button states to reflect current mode
-    updateAllPacketButtons();
-  }
-}
+
 
 function updateAllPacketButtons() {
   const allContainers = document.querySelectorAll('.fields-container');
@@ -2015,12 +1970,7 @@ function renderBuilderFromInstances(){
   }
   container.appendChild(pktList);
   
-  // Initialize mode for renderBuilderFromInstances
-  const modeButton = document.getElementById('modeToggleBtn');
-  if(modeButton && !container.classList.contains('simple-mode') && !container.classList.contains('full-mode')) {
-    modeButton.textContent = 'Simple';
-    container.classList.add('simple-mode');
-  }
+
   
   container._getVersion = ()=> parseInt(container.querySelector('input[type=number]').value||schema.version||1,10);
   for(const k of Object.keys(schema.packet_types)){
