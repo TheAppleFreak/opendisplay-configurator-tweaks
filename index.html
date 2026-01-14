@@ -1914,7 +1914,7 @@ function renderBuilderFromInstances(){
 }
 async function loadYamlFromFile() {
   try {
-    const response = await fetch('/firmware/config/config.yaml');
+    const response = await fetch('./firmware/config/config.yaml');
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -1963,20 +1963,20 @@ async function loadConfigFromUrl() {
   }
   let configUrl = configParamTrimmed;
   if (!configUrl.includes('/')) {
-    configUrl = '/firmware/config/presets/' + configUrl;
+    configUrl = './firmware/config/presets/' + configUrl;
   } else {
-    if (!configUrl.startsWith('presets/') && !configUrl.startsWith('/firmware/config/presets/')) {
+    if (!configUrl.startsWith('presets/') && !configUrl.startsWith('./firmware/config/presets/')) {
       addLog(`Error: Config must be in presets folder. Provided: ${configParam}`, 'error');
       return;
     }
     if (configUrl.startsWith('presets/')) {
-      configUrl = '/firmware/config/' + configUrl;
+      configUrl = './firmware/config/' + configUrl;
     }
   }
   if (!configUrl.endsWith('.json')) {
     configUrl += '.json';
   }
-  if (configUrl.includes('..') || (!configUrl.startsWith('/firmware/config/presets/') && !configUrl.startsWith('https://'))) {
+  if (configUrl.includes('..') || (!configUrl.startsWith('./firmware/config/presets/') && !configUrl.startsWith('https://'))) {
     addLog(`Error: Invalid config path. Only files in presets folder are allowed.`, 'error');
     return;
   }
@@ -2002,7 +2002,7 @@ function showAutoInstallPanel() {
   }
 }
 function openBleTester() {
-  window.open('/firmware/display/', '_blank');
+  window.open('./firmware/display/', '_blank');
 }
 async function startAutoInstall() {
   const autoInstallBtn = document.getElementById('autoInstallBtn');
