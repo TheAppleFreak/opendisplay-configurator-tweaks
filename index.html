@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="shortcut icon" href="./firmware/install/favicon.ico"> 
   <link rel="stylesheet" href="./common.css">
-  <title>OpenDisplay Packet Config Builder</title>
+  <title>OpenDisplay Packet Config Builder (with tweaks)</title>
 <style>
 /* Page-specific styles */
 label{font-weight:600;font-size:1.1rem;color:var(--foreground);margin-bottom:16px;display:block}
@@ -219,6 +219,10 @@ a:hover {
   color: #00bfff;
   text-decoration: underline;
 }
+.panel-ic-clear-btn:hover {
+  background-color: #f3f4f6 !important;
+  color: #374151 !important;
+}
 </style>
   <script src="./js/js-yaml.min.js"></script>
 </head>
@@ -230,7 +234,7 @@ a:hover {
       <span>Config Builder</span>
     </div>
   </div>
-  <h1>OpenDisplay Config Builder</h1>
+  <h1>OpenDisplay Config Builder (with UX tweaks)</h1>
   <div class="col panel">
     <label>BLE Connection</label>
     <div class="ble-controls">
@@ -880,13 +884,68 @@ function renderBuilder(){
           // Use typeahead dropdown for panel_ic_type field
           const isPanelIcType = f.name === 'panel_ic_type';
           let sel;
+          let inputContainer;
           
           if(isPanelIcType) {
+            // Create container for input and clear button
+            inputContainer = document.createElement('div');
+            inputContainer.style.display = 'flex';
+            inputContainer.style.flex = '1';
+            inputContainer.style.position = 'relative';
+            
             // Create typeahead dropdown with datalist
             sel = document.createElement('input');
             sel.type = 'text';
             sel.style.flex='1';
+            sel.style.paddingRight = '30px'; // Space for clear button
             sel.placeholder = 'Type to filter panel types...';
+            
+            // Create clear button
+            const clearBtn = document.createElement('button');
+            clearBtn.type = 'button';
+            clearBtn.className = 'panel-ic-clear-btn';
+            clearBtn.innerHTML = '×';
+            clearBtn.style.cssText = `
+              position: absolute;
+              right: 24px;
+              top: 50%;
+              margin-top: 0;
+              transform: translateY(-50%);
+              background: none;
+              border: none;
+              color: #8b949e;
+              font-size: 18px;
+              cursor: pointer;
+              padding: 0;
+              width: 20px;
+              height: 20px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              border-radius: 50%;
+              transition: all 0.2s;
+            `;
+            
+            // Show/hide clear button based on input content
+            clearBtn.style.display = sel.value ? 'flex' : 'none';
+            
+            // Clear button functionality
+            clearBtn.addEventListener('click', (e) => {
+              e.preventDefault();
+              sel.value = '';
+              sel.dataset.actualValue = '';
+              inst.fields[f.name] = '';
+              clearBtn.style.display = 'none';
+              updateInlinePacketSize(inst);
+              
+              // Trigger change event for any dependent fields
+              sel.dispatchEvent(new Event('change'));
+            });
+            
+            // Update clear button visibility on input
+            sel.addEventListener('input', () => {
+              clearBtn.style.display = sel.value ? 'flex' : 'none';
+            });
             
             // Create datalist for typeahead
             const datalistId = `panel_ic_type_datalist_${inst.uid}`;
@@ -894,6 +953,10 @@ function renderBuilder(){
             datalist.id = datalistId;
             
             sel.setAttribute('list', datalistId);
+            
+            // Assemble the container
+            inputContainer.appendChild(sel);
+            inputContainer.appendChild(clearBtn);
             frow.appendChild(datalist);
           } else {
             // Regular select dropdown for other enums
@@ -1085,7 +1148,11 @@ function renderBuilder(){
               setTimeout(handleTypeaheadChange, 10);
             };
           }
-          frow.appendChild(sel);
+          if(isPanelIcType) {
+            frow.appendChild(inputContainer);
+          } else {
+            frow.appendChild(sel);
+          }
           if(f.conditional_enum) {
             let valueToStore;
             if(isPanelIcType && sel.dataset.actualValue) {
@@ -1643,11 +1710,65 @@ function renderBuilderFromInstances(){
           let sel;
           
           if(isPanelIcType) {
+            // Create container for input and clear button
+            inputContainer = document.createElement('div');
+            inputContainer.style.display = 'flex';
+            inputContainer.style.flex = '1';
+            inputContainer.style.position = 'relative';
+            
             // Create typeahead dropdown with datalist
             sel = document.createElement('input');
             sel.type = 'text';
             sel.style.flex='1';
+            sel.style.paddingRight = '30px'; // Space for clear button
             sel.placeholder = 'Type to filter panel types...';
+            
+            // Create clear button
+            const clearBtn = document.createElement('button');
+            clearBtn.type = 'button';
+            clearBtn.className = 'panel-ic-clear-btn';
+            clearBtn.innerHTML = '×';
+            clearBtn.style.cssText = `
+              position: absolute;
+              right: 24px;
+              top: 50%;
+              margin: 0;
+              transform: translateY(-50%);
+              background: none;
+              border: none;
+              color: #8b949e;
+              font-size: 18px;
+              cursor: pointer;
+              padding: 0;
+              width: 20px;
+              height: 20px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              border-radius: 50%;
+              transition: all 0.2s;
+            `;
+            
+            // Show/hide clear button based on input content
+            clearBtn.style.display = sel.value ? 'flex' : 'none';
+            
+            // Clear button functionality
+            clearBtn.addEventListener('click', (e) => {
+              e.preventDefault();
+              sel.value = '';
+              sel.dataset.actualValue = '';
+              inst.fields[f.name] = '';
+              clearBtn.style.display = 'none';
+              updateInlinePacketSize(inst);
+              
+              // Trigger change event for any dependent fields
+              sel.dispatchEvent(new Event('change'));
+            });
+            
+            // Update clear button visibility on input
+            sel.addEventListener('input', () => {
+              clearBtn.style.display = sel.value ? 'flex' : 'none';
+            });
             
             // Create datalist for typeahead
             const datalistId = `panel_ic_type_datalist_${inst.uid}`;
@@ -1655,6 +1776,10 @@ function renderBuilderFromInstances(){
             datalist.id = datalistId;
             
             sel.setAttribute('list', datalistId);
+            
+            // Assemble the container
+            inputContainer.appendChild(sel);
+            inputContainer.appendChild(clearBtn);
             frow.appendChild(datalist);
           } else {
             // Regular select dropdown for other enums
@@ -1847,8 +1972,12 @@ function renderBuilderFromInstances(){
               setTimeout(handleTypeaheadChange, 10);
             };
           }
-          frow.appendChild(sel);
-        } else { 
+          if(isPanelIcType) {
+            frow.appendChild(inputContainer);
+          } else {
+            frow.appendChild(sel);
+          }
+        } else {
           const input = document.createElement('input');
           input.style.flex='1';
           if (f.name === 'ssid') {
